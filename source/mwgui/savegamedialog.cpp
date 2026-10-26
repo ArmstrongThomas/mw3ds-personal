@@ -499,11 +499,12 @@ int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float 
 			list.scroll -= in.dragDY;
 		list.scroll += uiStickScroll();
 		list.scroll = fmaxf(0.0f, fminf(list.scroll, fmaxf(0.0f, content - ih)));
-		// A save scrolled out of view is no longer selected: Save must not overwrite a hidden row
+		// A save scrolled fully out of view is no longer selected: Save must not overwrite a hidden row. A few pixels
+		// of C-stick drift must not clear it (on hardware that made the top-screen preview vanish after one frame).
 		if (list.selected >= 0)
 		{
 			float sy = list.selected * rowH;
-			if (sy < list.scroll || sy + rowH > list.scroll + ih)
+			if (sy + rowH <= list.scroll || sy >= list.scroll + ih)
 				list.selected = -1;
 		}
 	}

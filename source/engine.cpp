@@ -60,6 +60,12 @@ extern "C" void userAppExit(void)
 }
 
 static const char* const kSavePath = kAutosavePath;
+// A save wants a clean world picture: draw two HUD-free top frames (double buffering means the first clean frame is
+// only in the back buffer at the next FrameBegin), capture that frame, then save.
+static bool s_cleanSaveFrame = false;
+static bool s_captureCleanPreview = false;
+static bool s_cleanSaveCaptured = false;
+static int s_cleanSaveFrames = 0;
 
 // The top screen's targets (the right eye drawn only while 3D is on): a pair with the 24-bit depth buffer and a pair
 // with the 16-bit one, both made at the start (Engine::topDepth16).
@@ -359,12 +365,20 @@ bool Engine::frame()
 		return false;
 	if (loaded && !session->pendingSave.empty())
 	{
-		// The last frame's top screen is still in the framebuffer: a full picture of the world for the save preview
-		screenshotSavePreview((session->pendingSave + ".shot").c_str());
-		LoadingProgress progress(top, bottom, "Saving...");
-		session->finishSave();
-		lastTick = svcGetSystemTick();
-		return true;
+		if (s_cleanSaveCaptured)
+		{
+			LoadingProgress progress(top, bottom, "Saving...");
+			session->finishSave();
+			s_cleanSaveCaptured = false;
+			s_cleanSaveFrame = false;
+			s_cleanSaveFrames = 0;
+			lastTick = svcGetSystemTick();
+			return true;
+		}
+		if (s_cleanSaveFrames >= 2)
+			s_captureCleanPreview = true;      // taken after this frame's FrameBegin, as a SHOT is
+		else
+			s_cleanSaveFrame = true;           // draw one more world-only top frame
 	}
 
 	u64 now = svcGetSystemTick();
@@ -639,6 +653,13 @@ bool Engine::frame()
 		drawProfAdd(DRAWP_WAIT, since);     // (how long the GPU still had on the last frame)
 	}
 	linearRetire();                         // the GPU is done with what the update freed
+	if (s_captureCleanPreview)
+	{
+		// The previous FrameEnd left a clean world frame in this buffer (the two frames drawn without the HUD)
+		screenshotSavePreview((session->pendingSave + ".shot").c_str());
+		s_captureCleanPreview = false;
+		s_cleanSaveCaptured = true;
+	}
 	if (trace)
 		logf("frame %d: GPU done with the previous frame", traced);
 	if (autocamShot)
@@ -834,7 +855,11 @@ bool Engine::frame()
 		g_uiDraws = 0;
 		if (loaded)
 		{
-			if (!g_hudOff || session->dressJob || session->arrivalFrames || session->quitSaving > 0)
+			if (s_cleanSaveFrame)
+			{
+				// One HUD-free top frame for the save preview
+			}
+			else if (!g_hudOff || session->dressJob || session->arrivalFrames || session->quitSaving > 0)
 				session->drawTop();
 			else
 				session->drawHurtFlash();
@@ -877,6 +902,12 @@ bool Engine::frame()
 	MARK("frame end");
 	g_mainFrames++;
 	C3D_FrameEnd(0);
+	if (s_cleanSaveFrame && drawTopNow && loaded)
+	{
+		// This clean world frame is in the back buffer; the next FrameBegin rotates it into the front buffer
+		s_cleanSaveFrame = false;
+		s_cleanSaveFrames++;
+	}
 	if (trace)
 		logf("frame %d: submitted", traced++);
 	// The frame rate the session asks for (an Old 3DS: 30 or 20, Session::adaptView)

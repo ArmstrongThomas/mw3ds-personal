@@ -115,13 +115,14 @@ bool screenshotSavePreview(const char* path)
 	if (!fb)
 		return false;
 	GSPGPU_FramebufferFormat fmt = gfxGetScreenFormat(GFX_TOP);
-	std::vector<u16> img((size_t)kImgW * kImgH);
-	for (int y = 0; y < kImgH; y++)
-		for (int x = 0; x < kImgW; x++)
+	const int w = kImgW, h = 240;       // the top screen only (kImgH is both screens, 480)
+	std::vector<u16> img((size_t)w * h);
+	for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++)
 		{
 			u8 bgr[3];
 			readPixel(fb, fmt, x, y, bgr);
-			img[(size_t)y * kImgW + x] = (u16)(((bgr[2] >> 3) << 11) | ((bgr[1] >> 2) << 5) | (bgr[0] >> 3));
+			img[(size_t)y * w + x] = (u16)(((bgr[2] >> 3) << 11) | ((bgr[1] >> 2) << 5) | (bgr[0] >> 3));
 		}
 	FILE* f = fopen(path, "wb");
 	bool ok = f && fwrite(img.data(), sizeof(u16), img.size(), f) == img.size();

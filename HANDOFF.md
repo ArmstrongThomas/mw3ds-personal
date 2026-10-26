@@ -43,10 +43,10 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 - Save / Load screen rework: two-line saved-game cards (character and place, level and date/time), a selected-row
   highlight, save count, scrolling, and a footer of New save / Save / Load / Delete / Back. Save overwrites the selected
   player save after a confirmation, so the list no longer has to grow for every save. Dragging scrolls freely past the
-  selected row; a save scrolled out of view is no longer selected, so Save cannot overwrite a hidden one. Each save also
-  carries a 400 x 240 RGB565 `.shot` taken from the top screen before the saving screen draws; while the Saves screen is
-  open, the selected save's picture fills the top screen (or says "No screenshot for this save"). The title screen's Load
-  game list uses the same cards.
+  selected row; a save scrolled fully out of view is no longer selected, so Save cannot overwrite a hidden one; a few
+  pixels of C-stick drift do not clear it. Each save also carries a 400 x 240 RGB565 `.shot` from two HUD-free top
+  frames (double buffering needs both); while the Saves screen is open, the selected save's picture fills the top screen
+  (or says "No screenshot for this save"). The title screen's Load game list uses the same cards and picture.
 - Combat equipment is read ahead: equipped gear's first-person pieces (weapon, shield, tool, ammo in the bow and in
   flight), the selected spell's cast/bolt/hit/area visuals, and every blood splat a hit can throw are cached when the
   equipment or spell changes or at startup. Ready, draw, shot, first cast and the first successful hit no longer stop
@@ -55,8 +55,8 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `8666df78713e637c02999362561775b38a8ddf0b10e0d733dcc82b20bb7af118`
-(2,392,836 bytes).
+`mw3ds-personal.3dsx`. SHA-256: `4c0d450c3a9dfc1de6d1651be93b2369a963bb5cd61335905c9eea033e313ed4`
+(2,394,216 bytes).
 Both native and devkitPro builds pass. The blood-preload, TCL, save/load rework and full save-preview builds were sent
 over 3dslink on October 26. New 3DS XL feedback on the earlier build: equipment preload makes combat smooth; a quick
 switch to a weapon not yet cached still shows one load, then that weapon stays cached. Minimap labels persist across taps
