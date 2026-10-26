@@ -387,18 +387,30 @@ int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float 
 	{
 		if (keys)
 		{
-			if (in.down & KEY_DOWN) list.selected++;
-			if (in.down & KEY_UP) list.selected--;
-			list.selected = std::max(0, std::min(list.selected, (int)saves.size() - 1));
-			float sy = list.selected * rowH;
-			if (sy < list.scroll) list.scroll = sy;
-			if (sy + rowH > list.scroll + ih) list.scroll = sy + rowH - ih;
-			if (in.down & KEY_A) result = list.selected;
+			bool moved = false;
+			if (in.down & KEY_DOWN) list.selected = list.selected < 0 ? 0 : list.selected + 1, moved = true;
+			if (in.down & KEY_UP && list.selected > 0) list.selected--, moved = true;
+			if (list.selected >= (int)saves.size()) list.selected = (int)saves.size() - 1;
+			// Bring the selection back only when Up/Down moved it: doing this every frame snapped a drag back to it
+			if (moved && list.selected >= 0)
+			{
+				float sy = list.selected * rowH;
+				if (sy < list.scroll) list.scroll = sy;
+				if (sy + rowH > list.scroll + ih) list.scroll = sy + rowH - ih;
+			}
+			if ((in.down & KEY_A) && list.selected >= 0) result = list.selected;
 		}
 		if (in.touching && in.touchX >= ix && in.touchX < ix + iw && in.touchY >= iy && in.touchY < iy + ih)
 			list.scroll -= in.dragDY;
 		list.scroll += uiStickScroll();
 		list.scroll = fmaxf(0.0f, fminf(list.scroll, fmaxf(0.0f, content - ih)));
+		// A save scrolled out of view is no longer selected: Save must not overwrite a hidden row
+		if (list.selected >= 0)
+		{
+			float sy = list.selected * rowH;
+			if (sy < list.scroll || sy + rowH > list.scroll + ih)
+				list.selected = -1;
+		}
 	}
 	else
 		list.scroll = 0.0f;
@@ -460,6 +472,8 @@ int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float 
 		{
 			list.selected = (int)i;
 			result = (int)i;
+			if (ry < iy) list.scroll -= iy - ry;
+			if (ry + rowH > iy + ih) list.scroll += ry + rowH - (iy + ih);
 		}
 	}
 	if (content > ih)

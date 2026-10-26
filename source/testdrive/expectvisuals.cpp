@@ -243,6 +243,7 @@ std::optional<bool> numberOfWorld(Session& s, const std::string& what, const std
 	else if (what == "statsskillgroup") v = s.statsSkillGroup;
 	else if (what == "statsrows") v = s.statsRowsShown;
 	else if (what == "statsscroll") v = s.statsTab == 2 ? s.statsSkillScroll.scroll : s.statsFactionScroll.scroll;
+	else if (what == "savescroll") v = s.list.scroll;
 	else if (what == "maptipdrawn") { extern int g_mapTipDrawn; v = (float)g_mapTipDrawn; }
 	else if (what == "maptipx") { extern float g_mapTipBox[4]; v = g_mapTipBox[0]; }
 	else if (what == "maptipy") { extern float g_mapTipBox[4]; v = g_mapTipBox[1]; }

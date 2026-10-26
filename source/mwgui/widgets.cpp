@@ -721,13 +721,17 @@ int uiList(UiList& list, float x, float y, float w, float h, const std::vector<s
 	int result = -1;
 	if (keys && !rows.empty())
 	{
-		if (s_in.down & KEY_DOWN) list.selected = (list.selected + 1) % rows.size();
-		if (s_in.down & KEY_UP) list.selected = (list.selected + rows.size() - 1) % rows.size();
+		bool moved = false;
+		if (s_in.down & KEY_DOWN) list.selected = (list.selected + 1) % rows.size(), moved = true;
+		if (s_in.down & KEY_UP) list.selected = (list.selected + rows.size() - 1) % rows.size(), moved = true;
 		if (list.selected >= (int)rows.size()) list.selected = rows.size() - 1;
-		// keep the selection visible
-		float sy = list.selected * rowH;
-		if (sy < list.scroll) list.scroll = sy;
-		if (sy + rowH > list.scroll + h) list.scroll = sy + rowH - h;
+		// Bring the selection back only when Up/Down moved it: doing this every frame snapped a drag back to it
+		if (moved)
+		{
+			float sy = list.selected * rowH;
+			if (sy < list.scroll) list.scroll = sy;
+			if (sy + rowH > list.scroll + h) list.scroll = sy + rowH - h;
+		}
 		if (s_in.down & KEY_A) result = list.selected;
 	}
 	if (s_in.touching && s_in.touchX >= x && s_in.touchX < x + w && s_in.touchY >= y && s_in.touchY < y + h)
@@ -813,10 +817,11 @@ int uiWrapList(UiList& list, float x, float y, float w, float h, const std::vect
 	int result = -1;
 	if (keys && !rows.empty())
 	{
-		if (s_in.down & KEY_DOWN) list.selected = (list.selected + 1) % rows.size();
-		if (s_in.down & KEY_UP) list.selected = (list.selected + rows.size() - 1) % rows.size();
+		bool moved = false;
+		if (s_in.down & KEY_DOWN) list.selected = (list.selected + 1) % rows.size(), moved = true;
+		if (s_in.down & KEY_UP) list.selected = (list.selected + rows.size() - 1) % rows.size(), moved = true;
 		if (list.selected >= (int)rows.size()) list.selected = rows.size() - 1;
-		if (list.selected >= 0)
+		if (moved && list.selected >= 0)
 		{
 			float sy = top[list.selected], sh = top[list.selected + 1] - sy;
 			if (sy < list.scroll) list.scroll = sy;
