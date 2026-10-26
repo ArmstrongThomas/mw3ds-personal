@@ -449,13 +449,18 @@ std::string titleScreen(C3D_RenderTarget* top, C3D_RenderTarget* bottom, const c
 		uiRect(0, 0, 320, 20, col::panelLight);
 		uiRect(0, 20, 320, 1, col::border);
 		uiText(6, 2, 0.55f, col::header, "Load game");
-		int pick = uiSaveList(list, saves, 4, 24, 312, 176);
+		uiTextRight(314, 2, 0.4f, col::textDim,
+			std::to_string(saves.size()) + (saves.size() == 1 ? " save" : " saves"));
+		int pick = uiSaveList(list, saves, 4, 24, 312, 174);
+		if (saves.empty())
+			uiTextCentered(160, 104, 0.48f, col::textDim, "No saves yet");
 		if (down & KEY_RIGHT) focus = (focus + 1) % 2;
 		if (down & KEY_LEFT) focus = (focus + 1) % 2;
 		if (uiButton(4, 208, 154, 28, "New game", focus == 0))
 			result = "";
-		if (uiButton(162, 208, 154, 28, "Load", focus == 1) || (pick >= 0 && (down & KEY_A) && focus == 1))
-			result = saves[list.selected].path;
+		if (uiButton(162, 208, 154, 28, "Load", focus == 1) || (pick >= 0 && !saves.empty() && (down & KEY_A) && focus == 1))
+			if (!saves.empty())
+				result = saves[list.selected].path;
 		C3D_FrameEnd(0);
 		if (result != "\x01")
 			return result;

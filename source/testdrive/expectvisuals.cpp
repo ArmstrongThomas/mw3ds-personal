@@ -40,6 +40,7 @@ std::optional<bool> numberOfVisuals(Session& s, const std::string& what, const s
 		return true;
 	}
 	if (what == "deletingsave") { v = s.deletingSave ? 1.0f : 0.0f; return true; }    // the Saves screen asks "Delete ...?"
+	if (what == "overwritingsave") { v = s.overwritingSave ? 1.0f : 0.0f; return true; }   // asks "Overwrite ...?"
 	if (what == "vfxcount") { v = (float)s.vfx.size(); return true; }      // spell visuals showing now
 	// blended draws of the last drawn frame made after a nearer blended one (they go back to front: mwrender/renderingmanager.cpp)
 	if (what == "blendoutoforder") { extern int g_blendOutOfOrder; v = (float)g_blendOutOfOrder; return true; }

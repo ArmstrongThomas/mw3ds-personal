@@ -1,0 +1,18 @@
+# start: Seyda Neen
+# Overwriting a save reuses its slot instead of adding another: select one of the player's saves, press Save, confirm.
+# The list keeps one save, and the overwritten one is still the newest.
+1 0 0 0 0 MSG
+0.3 0 0 0 0 GOD
+0.3 0 0 0 0 SCREEN:saves
+0.3 0 0 0 0 TAP:33:222
+0.5 0 0 0 0
+0.3 0 0 0 0 EXPECT:saves:eq:1
+0.3 0 0 0 0 SCREEN:saves
+0.3 0 0 0 0 SAVESEL:newest
+0.3 0 0 0 0 TAP:97:222
+0.3 0 0 0 0 EXPECT:overwritingsave:eq:1+SHOT
+0.3 0 0 0 0 TAP:100:146
+0.5 0 0 0 0
+0.3 0 0 0 0 EXPECT:saves:eq:1+EXPECT:overwritingsave:eq:0+EXPECT:savenewestfirst:eq:1+SHOT
+0.3 0 0 0 0 B
+0.3 0 0 0 0 EXPECT:screen:none

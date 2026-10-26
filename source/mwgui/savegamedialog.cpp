@@ -361,30 +361,133 @@ void saveRow(const std::vector<SaveInfo>& saves, size_t i, std::string& left, st
 	}
 }
 
+static std::string saveFit(std::string text, float width, float scale)
+{
+	if (uiTextWidth(text, scale) <= width)
+		return text;
+	while (!text.empty() && uiTextWidth(text + "...", scale) > width)
+	{
+		while (!text.empty() && ((u8)text.back() & 0xC0) == 0x80)
+			text.pop_back();
+		if (!text.empty())
+			text.pop_back();
+	}
+	return text + "...";
+}
+
 int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float y, float w, float h, bool keys)
 {
-	std::vector<std::string> rows, right;
+	const UiInput& in = uiIn();
+	const float rowH = 32.0f;
+	uiPanel(x, y, w, h);
+	float ix = x + 4, iy = y + 4, iw = w - 8, ih = h - 8;
+	float content = saves.size() * rowH;
+	int result = -1;
+	if (!saves.empty())
+	{
+		if (keys)
+		{
+			if (in.down & KEY_DOWN) list.selected++;
+			if (in.down & KEY_UP) list.selected--;
+			list.selected = std::max(0, std::min(list.selected, (int)saves.size() - 1));
+			float sy = list.selected * rowH;
+			if (sy < list.scroll) list.scroll = sy;
+			if (sy + rowH > list.scroll + ih) list.scroll = sy + rowH - ih;
+			if (in.down & KEY_A) result = list.selected;
+		}
+		if (in.touching && in.touchX >= ix && in.touchX < ix + iw && in.touchY >= iy && in.touchY < iy + ih)
+			list.scroll -= in.dragDY;
+		list.scroll += uiStickScroll();
+		list.scroll = fmaxf(0.0f, fminf(list.scroll, fmaxf(0.0f, content - ih)));
+	}
+	else
+		list.scroll = 0.0f;
+
+	C2D_Flush();
+	C3D_SetScissor(GPU_SCISSOR_NORMAL, (u32)(240 - (iy + ih)), (u32)(320 - (ix + iw)), (u32)(240 - iy), (u32)(320 - ix));
 	for (size_t i = 0; i < saves.size(); i++)
 	{
-		rows.emplace_back();
-		right.emplace_back();
-		saveRow(saves, i, rows.back(), right.back());
+		float ry = iy + i * rowH - list.scroll;
+		if (ry + rowH < iy || ry > iy + ih)
+			continue;
+		const SaveInfo& s = saves[i];
+		bool sel = keys && (int)i == list.selected;
+		if (sel)
+			uiRect(ix, ry, iw, rowH, col::select);
+		else if (i % 2 == 0)
+			uiRect(ix, ry, iw, rowH, col::panelLight);
+		std::string title, sub;
+		if (s.autosave)
+		{
+			title = "Autosave";
+			sub = s.place;
+		}
+		else if (s.bundled)
+		{
+			title = "Starting point";
+			sub = s.place;
+		}
+		else
+		{
+			title = s.name.empty() ? s.place : s.name;
+			if (title.empty())
+				title = s.title;
+			sub = s.place;
+			if (sub == title)
+				sub.clear();
+		}
+		u32 titleColor = sel ? col::textOver : col::text;
+		u32 subColor = sel ? col::textOver : col::textDim;
+		char date[32] = {};
+		if (s.time && !s.bundled)
+		{
+			time_t t = (time_t)(s.time / 1000 - 2208988800ULL);
+			const struct tm* tm = gmtime(&t);
+			if (tm)              // month / day and the hour: "10/18 13:18"
+				snprintf(date, sizeof(date), "%d/%d  %02d:%02d", tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min);
+		}
+		std::string level = s.level > 0 ? "Lv " + std::to_string(s.level) : "";
+		float rightW = fmaxf(uiTextWidth(level, 0.4f), uiTextWidth(date, 0.34f));
+		float textW = iw - 18.0f - rightW;
+		uiText(ix + 6, ry + 1, 0.45f, titleColor, saveFit(title, textW, 0.45f));
+		if (!sub.empty())
+			uiText(ix + 6, ry + 16, 0.34f, subColor, saveFit(sub, textW, 0.34f));
+		if (!level.empty())
+			uiTextRight(ix + iw - 8, ry + 3, 0.4f, subColor, level);
+		if (date[0])
+			uiTextRight(ix + iw - 8, ry + 18, 0.34f, subColor, date);
+		if (uiHit(ix, fmaxf(ry, iy), iw, fminf(rowH, iy + ih - ry)))
+		{
+			list.selected = (int)i;
+			result = (int)i;
+		}
 	}
-	return uiList(list, x, y, w, h, rows, 0.45f, keys, &right);
+	if (content > ih)
+	{
+		float track = ih - 4.0f, thumb = fmaxf(16.0f, track * ih / content);
+		float at = iy + 2.0f + (track - thumb) * (list.scroll / (content - ih));
+		uiRect(ix + iw - 3, iy + 2.0f, 2, track, C2D_Color32(0, 0, 0, 120));
+		uiRect(ix + iw - 3, at, 2, thumb, col::textDim);
+	}
+	C2D_Flush();
+	C3D_SetScissor(GPU_SCISSOR_DISABLE, 0, 0, 0, 0);
+	return result;
 }
 
 // Save a new game or load any save (autosave, your saves, bundled starting points)
 void Session::drawSaves()
 {
-	header("Saves");
-	int pick = uiSaveList(list, saveList, 4, 24, 312, 176, !deletingSave);
+	std::string count = std::to_string(saveList.size()) + (saveList.size() == 1 ? " save" : " saves");
+	header("Saves", count);
+	uiSaveList(list, saveList, 4, 24, 312, 174, !deletingSave && !overwritingSave);
 	if (saveList.empty())
-		uiTextCentered(160, 100, 0.5f, col::textDim, "No saves yet");
+		uiTextCentered(160, 104, 0.48f, col::textDim, "No saves yet. New save starts one.");
 	// Saving mid-chargen would lose the menus the scripts queued, so wait until they're done
 	bool canSave = pendingMenus.empty() && !wantName && !playerDead;     // (dead: load only)
 	bool canLoad = list.selected >= 0 && list.selected < (int)saveList.size();
 	// (the starting points that come with the game stay)
 	bool canDelete = canLoad && !saveList[list.selected].bundled;
+	bool canOverwrite = canSave && canLoad && !saveList[list.selected].autosave && !saveList[list.selected].bundled;
 	if (deletingSave)
 	{
 		// "Delete <name>?" Yes / No
@@ -411,8 +514,7 @@ void Session::drawSaves()
 				forgetSave(saveList[list.selected].path);
 				appendIndex("-\t" + fileOf(saveList[list.selected].path) + "\n");
 				saveList = savesList(dataDir);
-				if (list.selected >= (int)saveList.size())
-					list.selected = (int)saveList.size() - 1;
+				list.selected = std::max(0, std::min(list.selected, (int)saveList.size() - 1));
 				notify("Save deleted.");
 			}
 			if (yn >= 0 || (uiIn().down & KEY_B))
@@ -423,24 +525,69 @@ void Session::drawSaves()
 		}
 		return;
 	}
-	int b = buttonRow({ canSave ? "New save" : playerDead ? "(dead)" : "(finish chargen)", "Load", w.game.gmstLabel("sdelete", "Delete"),
-		w.game.gmstLabel("sback", "Back") }, focus);
-	if (b == 2 && canDelete)
+	if (overwritingSave)
 	{
-		deletingSave = true;
-		focus = 1;               // (No)
+		// "Overwrite <name>?" Yes / No
+		if (!canOverwrite)
+			overwritingSave = false;
+		else
+		{
+			uiRect(20, 70, 280, 100, C2D_Color32(0, 0, 0, 255));
+			uiPanel(20, 70, 280, 100);
+			uiTextBox(scroll, 26, 76, 268, 50, "Overwrite " + saveList[list.selected].title + "?", 0.5f, false);
+			if (uiIn().down & (KEY_LEFT | KEY_RIGHT))
+				focus = 1 - focus;
+			int yn = -1;
+			const std::string kAnswer[2] = { w.game.gmstLabel("syes", "Yes"), w.game.gmstLabel("sno", "No") };
+			for (int i = 0; i < 2; i++)
+				if (uiButton(34 + i * 132, 132, 120, 28, kAnswer[i], i == focus))
+					yn = i;
+			if (yn == 0)
+			{
+				pendingSave = saveList[list.selected].path;
+				logf("saves: overwriting %s", pendingSave.c_str());
+			}
+			if (yn >= 0 || (uiIn().down & KEY_B))
+			{
+				overwritingSave = false;
+				focus = 0;
+			}
+		}
+		return;
 	}
-	else if (b == 0 && canSave)
+	int b = buttonRow({ canSave ? "New save" : playerDead ? "(dead)" : "(wait)", "Save", "Load",
+		canDelete ? w.game.gmstLabel("sdelete", "Delete") : "(keep)", w.game.gmstLabel("sback", "Back") }, focus);
+	if (b == 0)
 	{
-		pendingSave = saveNewPath();
+		if (canSave)
+			pendingSave = saveNewPath();
+		else
+			notify(playerDead ? "Load a save to keep playing." : "Finish character creation first.");
 	}
-	else if ((b == 1 || (pick >= 0 && (uiIn().down & KEY_A))) && canLoad)
+	else if (b == 1)
+	{
+		if (!canSave)
+			notify(playerDead ? "Load a save to keep playing." : "Finish character creation first.");
+		else if (!canOverwrite)
+			notify("Select one of your saves to overwrite, or press New save.");
+		else
+		{
+			overwritingSave = true;
+			focus = 1;               // (No)
+		}
+	}
+	else if (b == 2 && canLoad)
 	{
 		reloadPath = saveList[list.selected].path;
 		wantReload = true;
 		closeScreen();
 	}
-	else if (b == 3 || (uiIn().down & KEY_B))
+	else if (b == 3 && canDelete)
+	{
+		deletingSave = true;
+		focus = 1;               // (No)
+	}
+	else if (b == 4 || (uiIn().down & KEY_B))
 	{
 		if (playerDead)
 			openScreen(SCR_DEATH);     // back to the death screen: no way back into the game but a load
@@ -455,5 +602,8 @@ void Session::finishSave()
 	pendingSave.clear();
 	notify(ok ? "Game saved." : "Saving failed.");
 	if (ok)
-		addSaveToList(saveList);
+	{
+		saveList = savesList(dataDir);
+		list.selected = std::max(0, std::min(list.selected, (int)saveList.size() - 1));
+	}
 }

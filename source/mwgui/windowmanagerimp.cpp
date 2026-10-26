@@ -185,6 +185,8 @@ void Session::openScreen(Screen s)
 	scroll = UiScroll();
 	if (s == SCR_STATS)
 		statsSkillScroll = statsFactionScroll = UiScroll();
+	if (s == SCR_SAVES)
+		deletingSave = overwritingSave = false;
 	focus = 0;
 	containerPutting = false;
 	bookFromItems = false;

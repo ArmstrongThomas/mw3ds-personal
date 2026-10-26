@@ -10,7 +10,9 @@
 0.3 0 0 0 0 A
 0.3 0 0 0 0 A
 0.3 0 0 0 0 EXPECT:saves:eq:@3
+0.3 0 0 0 0 SHOT
 0.3 0 0 0 0 SAVESEL:newest
+0.3 0 0 0 0 RIGHT
 0.3 0 0 0 0 RIGHT
 0.3 0 0 0 0 RIGHT
 0.3 0 0 0 0 A

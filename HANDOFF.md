@@ -40,6 +40,10 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 - Console `tcl` now toggles collision: with it off the player moves freely through geometry and gravity, using the fly
   controls (ZR/R up, ZL/L down, jump also rises) to get out of a clipped spot; `tcl` again restores collision. It
   reports "Collision -> Off/On".
+- Save / Load screen rework: two-line saved-game cards (character and place, level and date/time), a selected-row
+  highlight, save count, scrolling, and a footer of New save / Save / Load / Delete / Back. Save overwrites the selected
+  player save after a confirmation, so the list no longer has to grow for every save. The title screen's Load game list
+  uses the same cards.
 - Combat equipment is read ahead: equipped gear's first-person pieces (weapon, shield, tool, ammo in the bow and in
   flight), the selected spell's cast/bolt/hit/area visuals, and every blood splat a hit can throw are cached when the
   equipment or spell changes or at startup. Ready, draw, shot, first cast and the first successful hit no longer stop
@@ -48,14 +52,15 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `9a23136beccb653ea8485521cac82a8374dcaee9b46a30cb86e52d4ffa71c000`
-(2,386,604 bytes).
-Both native and devkitPro builds pass. The previous (blood-preload) build was sent over 3dslink on October 26; this
-TCL build is built and tested but not sent yet. New 3DS XL feedback on the earlier build: equipment preload makes
-combat smooth; a quick switch to a weapon not yet cached still shows one load, then that weapon stays cached. Minimap
-labels persist across taps and between the minimap and full map; very long names span much of the screen but were
-accepted. The scrolled Stats lists were confirmed better. The blood-splat preload and TCL behavior are pending hardware
-confirmation. Audible loading music still needs a listening check.
+`mw3ds-personal.3dsx`. SHA-256: `adc8b47bd5658e57a431c547911f1fe9f8741ad1a551b1fb7846621cfabdfa1d`
+(2,389,276 bytes).
+Both native and devkitPro builds pass. The blood-preload and TCL builds were sent over 3dslink on October 26; this
+save/load rework is built and tested but netloader was unreachable when sending (connection failed). New 3DS XL feedback
+on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one
+load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long
+names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. The blood-splat
+preload, TCL behavior and the save/load rework are pending hardware confirmation. Audible loading music still needs a
+listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -66,6 +71,7 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 | `perf-stylus-map-markers` | 12 | Tap Balmora and its long Guild name; label drawn outside the minimap |
 | `feat-preload-equipment` | 4 | Bow and arrows cached at equip; ready adds no piece reads |
 | `feat-preload-blood` | 3 | All blood splats cached before the first hit; the hit adds no piece reads |
+| `feat-save-overwrite` | 6 | New save, reopen, overwrite selected save, list stays at one |
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |
@@ -73,8 +79,9 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 Logs: `build/*-tribunal-native.log`, `build/*-tribunal-emu.log`; captures: `build/shots/tribunal/`.
 Character, Attributes, the scrolled Misc skills list, empty Factions, and populated/scrolled Factions renders were
 inspected. Earlier navigation, marker, shrine tooltip, worn-effect, save, shutdown, and Old 3DS compatibility results
-are in the performance spec. The stats, marker-name, equipment-preload, blood-preload and console-command rows were
-rerun on both the native build and the isolated Azahar copy for this revision; the emulator still has no DSP firmware.
+are in the performance spec. The stats, marker-name, equipment-preload, blood-preload, console-command and save-overwrite
+rows were rerun on both the native build and the isolated Azahar copy for this revision; the emulator still has no DSP
+firmware.
 
 ## Outstanding checks and limits
 
