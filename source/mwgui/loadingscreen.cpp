@@ -18,6 +18,7 @@
 #include "mwbase/session.hpp"
 #include "mwinput/inputmanagerimp.hpp"
 #include "mwgui/loadingscreen.hpp"
+#include "mwgui/savegamedialog.hpp"
 #include "components/debug/loadprogress.hpp"
 
 // Clears the 3D screen's target to an 0xRRGGBBAA colour. The GPU's fill writes the value's low bits as they
@@ -425,7 +426,21 @@ std::string titleScreen(C3D_RenderTarget* top, C3D_RenderTarget* bottom, const c
 				s_lastFrame.ok = false;
 			}
 		}
-		if (art)
+		bool shot = !saves.empty() && list.selected >= 0 && list.selected < (int)saves.size()
+			&& drawSavePreview(saves[list.selected], false);
+		if (shot)
+		{
+			// The selected save's picture, with the hint kept over it
+			uiRect(0, notice ? 186 : 208, 400, notice ? 54 : 32, 0xA0000000);
+			if (notice)
+				uiTextCentered(200, 192, 0.5f, col::health, notice);
+			static const char* kHint = "Choose a save on the touch screen, or start a new game";
+			float hs = 0.5f;
+			while (hs > 0.3f && uiTextWidth(kHint, hs) > 388.0f)
+				hs -= 0.02f;
+			uiTextCentered(200, 216, hs, col::text, kHint);
+		}
+		else if (art)
 		{
 			uiRect(0, notice ? 186 : 208, 400, notice ? 54 : 32, 0xA0000000);
 			if (notice)

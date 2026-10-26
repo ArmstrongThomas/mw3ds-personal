@@ -7,9 +7,9 @@ bool screenshotSave(const char* path);
 // A render target texture (the local map's) as a BMP, at the end of the frame being drawn. The PC build only
 // (tools/convert/maprender.py bakes the world map with it); the 3DS build returns false
 bool screenshotSaveTexture(C3D_Tex* tex, const char* path);
-// A small raw RGB565 thumbnail of the top screen (width and height powers of two), written as width*height*2 bytes.
-// Call it before the saving screen draws, so the thumbnail is the world the player is leaving, not the save menu.
-bool screenshotSaveThumbnail(const char* path, int width, int height);
+// The top screen as raw RGB565 (400 x 240, 400*240*2 bytes) for the save preview. Call it before the saving screen
+// draws, so the picture is the world the player is leaving, not the save menu.
+bool screenshotSavePreview(const char* path);
 // The PC build draws only frames that save something: this one is drawn, so a render to a texture saved after it
 // happens (the 3DS draws every frame)
 void screenshotDrawThisFrame();

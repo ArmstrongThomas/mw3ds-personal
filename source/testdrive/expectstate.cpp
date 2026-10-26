@@ -77,13 +77,13 @@ std::optional<bool> numberOfState(Session& s, const std::string& what, const std
 			if (!sv.autosave && !sv.bundled)
 				v++;
 	}
-	else if (what == "savethumb")     // the newest player save has its .thumb beside it
+	else if (what == "savepreview")     // the newest player save has its .shot beside it
 	{
 		v = 0;
 		for (auto& sv : savesList(s.dataDir))
 			if (!sv.autosave && !sv.bundled)
 			{
-				if (FILE* f = fopen((sv.path + ".thumb").c_str(), "rb"))
+				if (FILE* f = fopen((sv.path + ".shot").c_str(), "rb"))
 				{
 					fclose(f);
 					v = 1;

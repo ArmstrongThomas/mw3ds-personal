@@ -1487,34 +1487,27 @@ bool screenshotSaveTexture(C3D_Tex* tex, const char* path)
 	return true;
 }
 
-// A small raw RGB565 thumbnail of the last drawn top screen, for the save list. The PC build may not have drawn a
-// frame (a scripted save without a screenshot): a plain dark tile stands in, so the list layout is still exercised.
-bool screenshotSaveThumbnail(const char* path, int width, int height)
+// The last drawn top screen as raw RGB565, for the save preview. The PC build may not have drawn a frame (a scripted
+// save without a screenshot): a plain dark picture stands in, so the preview path is still exercised.
+bool screenshotSavePreview(const char* path)
 {
-	if (!path || width <= 0 || height <= 0)
+	if (!path)
 		return false;
+	const int w = 400, h = 240;
 	const C3D_RenderTarget* top = nullptr;
 	for (auto* t : s_targets)
 		if (t->screen == GFX_TOP && t->side == GFX_LEFT)
 			top = t;
-	std::vector<u16> img((size_t)width * height, 0x18E3);
+	std::vector<u16> img((size_t)w * h, 0x18E3);
 	if (top && top->w > 0 && top->h > 0)
-	{
-		float scale = (float)width / top->w;
-		if ((float)height / top->h < scale)
-			scale = (float)height / top->h;
-		float cw = top->w * scale, ch = top->h * scale, ox = (width - cw) * 0.5f, oy = (height - ch) * 0.5f;
-		for (int y = 0; y < height; y++)
-			for (int x = 0; x < width; x++)
+		for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
 			{
-				float fx = (x - ox) / scale, fy = (y - oy) / scale;
-				if (fx < 0.0f || fy < 0.0f || fx >= top->w || fy >= top->h)
-					continue;
-				u32 c = top->color[(size_t)(int)fy * top->w + (int)fx];
-				img[(size_t)y * width + x] = (u16)((((c >> 16) & 0xFF) >> 3) << 11 | (((c >> 8) & 0xFF) >> 2) << 5 |
+				int sx = x * top->w / w, sy = y * top->h / h;
+				u32 c = top->color[(size_t)sy * top->w + sx];
+				img[(size_t)y * w + x] = (u16)((((c >> 16) & 0xFF) >> 3) << 11 | (((c >> 8) & 0xFF) >> 2) << 5 |
 					((c & 0xFF) >> 3));
 			}
-	}
 	FILE* f = fopen(path, "wb");
 	bool ok = f && fwrite(img.data(), sizeof(u16), img.size(), f) == img.size();
 	if (f)

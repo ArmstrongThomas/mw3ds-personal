@@ -359,8 +359,8 @@ bool Engine::frame()
 		return false;
 	if (loaded && !session->pendingSave.empty())
 	{
-		// The last frame's top screen is still in the framebuffer: a thumbnail of the world, not of the saving screen
-		screenshotSaveThumbnail((session->pendingSave + ".thumb").c_str(), 64, 32);
+		// The last frame's top screen is still in the framebuffer: a full picture of the world for the save preview
+		screenshotSavePreview((session->pendingSave + ".shot").c_str());
 		LoadingProgress progress(top, bottom, "Saving...");
 		session->finishSave();
 		lastTick = svcGetSystemTick();

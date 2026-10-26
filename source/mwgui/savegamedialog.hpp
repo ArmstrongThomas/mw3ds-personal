@@ -53,3 +53,6 @@ std::string saveNewPath();
 void saveRow(const std::vector<SaveInfo>& saves, size_t i, std::string& left, std::string& right);
 // The list as UI rows; returns the row activated this frame (tap or A) or -1
 int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float y, float w, float h, bool keys = true);
+// The selected save's 400 x 240 picture on the top screen (from <save>.shot). False when there is none; fallback draws
+// a dark "No screenshot" tile, while the title screen keeps its art instead.
+bool drawSavePreview(const SaveInfo& save, bool fallback = true);

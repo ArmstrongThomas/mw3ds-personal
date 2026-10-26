@@ -1,0 +1,10 @@
+﻿# start: Seyda Neen
+# A save writes its 400 x 240 top-screen picture beside it and the Saves screen shows it on the top screen.
+1 0 0 0 0 MSG
+0.3 0 0 0 0 GOD
+0.3 0 0 0 0 SCREEN:saves
+0.3 0 0 0 0 A
+0.5 0 0 0 0
+0.3 0 0 0 0 EXPECT:saves:eq:1+EXPECT:savepreview:eq:1+SHOT
+0.3 0 0 0 0 B
+0.3 0 0 0 0 EXPECT:screen:none

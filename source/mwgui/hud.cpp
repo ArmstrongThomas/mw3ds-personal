@@ -7,6 +7,7 @@
 #include "mwbase/session.hpp"
 #include <cstdio>
 #include "mwgui/windowmanagerimp.hpp"
+#include "mwgui/savegamedialog.hpp"
 #include "mwinput/touchlook.hpp"
 #include "platform/battery.hpp"
 #include <array>
@@ -272,6 +273,9 @@ void Session::drawTop()
 		uiRect(0, 0, 400, 240, C2D_Color32(0, 0, 0, (u8)(fminf(fade, 1.0f) * 255)));
 	if (wantName)
 		uiTextCentered(200, 110, 0.6f, col::header, "Enter your name");
+	// The Saves screen replaces the paused world with the selected save's picture (a full 400 x 240 shot)
+	if (screen == SCR_SAVES && list.selected >= 0 && list.selected < (int)saveList.size())
+		drawSavePreview(saveList[list.selected]);
 }
 
 // The four quick keys as slots under the minimap (Up, Right, Down, Left), big enough to tap: the item's icon or the
