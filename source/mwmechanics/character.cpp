@@ -385,8 +385,9 @@ void Session::viewModelUpdate(const PlayerInput& in, float dt)
 		act.moveX = in.moveX;
 		act.moveY = in.moveY;
 		// (a jump, or a real fall: not a step down a slope, a frame off the ground)
-		act.airborne = !w.player.swimming && !w.player.flying && !w.player.onGround && (w.player.jumpFlight || w.player.vz < -150.0f);
-		act.flying = (w.player.levitate > 0.0f || w.player.flying) && !w.player.swimming;
+		act.airborne = !w.player.swimming && !w.player.flying && !w.player.noClip && !w.player.onGround
+			&& (w.player.jumpFlight || w.player.vz < -150.0f);
+		act.flying = (w.player.levitate > 0.0f || w.player.flying || w.player.noClip) && !w.player.swimming;
 		act.action = vm.action == VM_WINDUP ? BODY_WINDUP : vm.action == VM_FOLLOW ? BODY_STRIKE : BODY_NONE;
 		if (vm.action == VM_CAST)
 		{

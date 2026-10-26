@@ -241,7 +241,7 @@ void Session::monitorActors(float dt)
 	// The player under the world: no floor in any loaded cell below the feet, or in the air for over 3 s
 	// (flying, levitating and swimming excepted)
 	const Player& p = w.player;
-	bool airborne = !p.onGround && !p.flying && !p.swimming && p.levitate <= 0.0f && !p.waterWalk && !playerDead
+	bool airborne = !p.onGround && !p.flying && !p.noClip && !p.swimming && p.levitate <= 0.0f && !p.waterWalk && !playerDead
 		&& !menuOpen() && travelCell < 0;
 	playerAirT = airborne ? playerAirT + step : 0.0f;
 	if (airborne)

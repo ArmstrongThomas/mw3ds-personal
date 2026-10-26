@@ -275,6 +275,17 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	bool centerOnCell(const std::string& name) override;
 	bool centerOnExterior(int x, int y) override;
 	bool toggleGodMode() override { testGod = !testGod; testGodBlows = false; return testGod; }
+	bool toggleCollision() override
+	{
+		w.player.noClip = !w.player.noClip;
+		if (w.player.noClip)
+		{
+			w.player.vz = 0.0f;
+			w.player.onGround = w.player.swimming = false;
+			w.player.landedFall = 0.0f;
+		}
+		return !w.player.noClip;
+	}
 	bool isWeaponDrawn(int ref) override;
 	void explodeSpell(int ref, const std::string& spell) override;
 	bool moviePlaying() const { return movieFile != nullptr; }

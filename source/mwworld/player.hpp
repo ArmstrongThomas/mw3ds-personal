@@ -34,6 +34,7 @@ struct Player
 	float vz = 0.0f;
 	bool onGround = false;
 	bool flying = false;
+	bool noClip = false;      // TCL: no collision, free movement (to get out of geometry)
 	bool swimming = false;    // treading water at the surface
 	bool sneaking = false;
 	float knockTimer = 0.0f;  // > 0: knocked down, no control

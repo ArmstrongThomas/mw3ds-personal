@@ -67,7 +67,7 @@
 	X(GETPLAYERLOOKINGDISABLED, "getplayerlookingdisabled") X(GETPLAYERMAGICDISABLED, "getplayermagicdisabled") \
 	X(GETPLAYERVIEWSWITCHDISABLED, "getplayerviewswitchdisabled") X(GETVANITYMODEDISABLED, "getvanitymodedisabled") \
 	X(GOTOJAIL, "gotojail") X(RAISERANK, "raiserank") X(LOWERRANK, "lowerrank") X(HASSOULGEM, "hassoulgem") \
-	X(REMOVESOULGEM, "removesoulgem") X(GETCURRENTWEATHER, "getcurrentweather") X(GETPOS_, "getposition") X(FALL, "fall") 	X(COC, "coc") X(CENTERONCELL, "centeroncell") X(COE, "coe") X(CENTERONEXTERIOR, "centeronexterior") 	X(TGM, "tgm") X(TOGGLEGODMODE, "togglegodmode") X(TAI, "tai") X(TOGGLEAI, "toggleai") X(SV, "sv") 	X(SHOWVARS, "showvars") X(ORI, "ori") X(OUTPUTREFINFO, "outputrefinfo") X(BC, "bc") X(BETACOMMENT, "betacomment") 	X(HELP, "help") X(FILLJOURNAL, "filljournal") X(FILLMAP, "fillmap") \
+	X(REMOVESOULGEM, "removesoulgem") X(GETCURRENTWEATHER, "getcurrentweather") X(GETPOS_, "getposition") X(FALL, "fall") 	X(COC, "coc") X(CENTERONCELL, "centeroncell") X(COE, "coe") X(CENTERONEXTERIOR, "centeronexterior") 	X(TGM, "tgm") X(TOGGLEGODMODE, "togglegodmode") X(TCL, "tcl") X(TOGGLECOLLISION, "togglecollision") X(TAI, "tai") X(TOGGLEAI, "toggleai") X(SV, "sv") 	X(SHOWVARS, "showvars") X(ORI, "ori") X(OUTPUTREFINFO, "outputrefinfo") X(BC, "bc") X(BETACOMMENT, "betacomment") 	X(HELP, "help") X(FILLJOURNAL, "filljournal") X(FILLMAP, "fillmap") \
 	X(GETINTERIOR, "getinterior") X(GETSQUAREROOT, "getsquareroot") X(GETSTAT, "getstat") \
 	X(GETPCSNEAKING, "getpcsneaking") X(GETWEAPONDRAWN, "getweapondrawn") X(GETCHAMELEON, "getchameleon") \
 	X(GETPARALYSIS, "getparalysis") X(FACE, "face") X(SETDELETE, "setdelete") \

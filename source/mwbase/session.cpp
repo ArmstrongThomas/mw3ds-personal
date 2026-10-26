@@ -159,7 +159,7 @@ void Session::update(const PlayerInput& inRaw, float dt)
 
 	// The converted land ends at the walkable bounds
 	Cell& here = w.here();
-	if (here.bounded() && !w.player.flying)
+	if (here.bounded() && !w.player.flying && !w.player.noClip)
 	{
 		const float margin = 64.0f;
 		float* f = w.player.feet;

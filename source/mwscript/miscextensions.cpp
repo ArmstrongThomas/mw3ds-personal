@@ -181,6 +181,9 @@ std::optional<float> miscExtensions(Ctx& c, const Node& n, World& w, bool onPlay
 	case F_TGM: case F_TOGGLEGODMODE:
 		c.host.report(c.host.toggleGodMode() ? "God Mode -> On" : "God Mode -> Off");
 		return 0.0f;
+	case F_TCL: case F_TOGGLECOLLISION:
+		c.host.report(c.host.toggleCollision() ? "Collision -> On" : "Collision -> Off");
+		return 0.0f;
 	// ShowVars: the object's script variables, else the globals (sorted) and the running global scripts' (OpenMW)
 	case F_SV: case F_SHOWVARS:
 	{

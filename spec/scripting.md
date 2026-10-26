@@ -76,14 +76,15 @@ Console commands the engine runs (OpenMW registers them for scripts too):
 | `coe` / `CenterOnExterior` | to the middle of that exterior cell, on the ground | |
 | `tgm` / `ToggleGodMode` | "God Mode -> On / Off" | the player is kept alive; spells and fatigue still cost |
 | `tai` / `ToggleAI` | actors stand still, packages and fights held; "AI -> On / Off" | |
+| `tcl` / `ToggleCollision` | collision off: the player moves freely through geometry and gravity, flying with ZR/R up, ZL/L down (jump also rises); "Collision -> On / Off" | here it also removes gravity so a clipped player can climb out |
 | `sv` / `ShowVars` | the object's script variables; nothing selected: the globals, sorted, and running global scripts' | |
 | `ori` / `OutputRefInfo` / `bc` | RefID, cell, coordinates, rotation, script | no content file, RefNum or model |
 | `help` | the functions the engine runs | OpenMW lists every keyword |
 | `FillMap` | every named exterior place on the map | |
 | `FillJournal` | every quest's entries, every topic known | topic pages are not filled with every answer |
 
-Not run (refused "not supported here"): collision, render and debug toggles (`tcl`, `tw`, `ts`, `tb`, `twf`, `tpg`,
-`tcb`, `tcg`, `tm`, `tfow`, navmesh), `ssg`, `testcells`, `ra`, `fixme`, `user1`-`user4`, and the functions in
+Not run (refused "not supported here"): collision-box/grid and render/debug toggles (`tcb`, `tcg`, `tw`, `ts`, `tb`,
+`twf`, `tpg`, `tm`, `tfow`, navmesh), `ssg`, `testcells`, `ra`, `fixme`, `user1`-`user4`, and the functions in
 `script_gap.py`'s missing list.
 
 The console screen itself is the 3DS's (bottom screen, the system keyboard): "differs (3DS UI, kept)".

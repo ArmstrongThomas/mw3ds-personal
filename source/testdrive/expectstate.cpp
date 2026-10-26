@@ -232,6 +232,7 @@ std::optional<bool> numberOfState(Session& s, const std::string& what, const std
 	else if (what == "brewed") { v = 0; for (auto& id : w.brewed) v += std::max(0, w.itemCount(id)); }
 	else if (what == "hour") v = fmodf(w.gameHour, 24.0f);     // the hour of the day (gameHour counts on past 24)
 	else if (what == "flying") v = w.player.flying ? 1.0f : 0.0f;
+	else if (what == "noclip") v = w.player.noClip ? 1.0f : 0.0f;
 	else if (what == "swings") v = (float)s.swingCount;       // blows the player let go
 	else if (what == "casts") v = (float)s.castCount;         // spells the player cast
 	else if (what == "vmaction") v = (float)s.vm.action;

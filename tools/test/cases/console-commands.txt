@@ -1,5 +1,6 @@
+# start: Seyda Neen
 # The console's own commands (OpenMW's, which scripts may call too): God mode, AI off, COC / COE to a place, ShowVars,
-# ORI on the selected object, Help, FillMap, FillJournal; and one OpenMW has that the engine does not run, refused
+# ORI on the selected object, Help, FillMap, FillJournal, and TCL's collision toggle
 3 0 0 0 0 MSG
 0.3 0 0 0 0 CON:tgm
 0.3 0 0 0 0 EXPECT:conhas:God_Mode_->_On:eq:1
@@ -41,8 +42,13 @@
 0.3 0 0 0 0 CON:coe%-3%-2
 6 0 0 0
 0.3 0 0 0 0 EXPECT:cell:Balmora
-# OpenMW has it, the engine does not run it: refused, not half run
+# TCL toggles collision (free movement, no clipping) and reports it; ToggleCollision is the same command
 0.3 0 0 0 0 CON:tcl
-0.3 0 0 0 0 EXPECT:conerr:eq:1
-0.3 0 0 0 0 EXPECT:conhas:not_supported_here:eq:1
+0.3 0 0 0 0 EXPECT:conhas:Collision_->_Off:eq:1+EXPECT:noclip:eq:1
+0.3 0 0 0 0 CON:tcl
+0.3 0 0 0 0 EXPECT:conhas:Collision_->_On:eq:1+EXPECT:noclip:eq:0
+0.3 0 0 0 0 CON:togglecollision
+0.3 0 0 0 0 EXPECT:conhas:Collision_->_Off:eq:1+EXPECT:noclip:eq:1
+0.3 0 0 0 0 CON:togglecollision
+0.3 0 0 0 0 EXPECT:conhas:Collision_->_On:eq:1+EXPECT:noclip:eq:0
 1 0 0 0

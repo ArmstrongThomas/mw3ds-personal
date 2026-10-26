@@ -620,7 +620,7 @@ void playerUpdate(Player& p, Scene& scene, const PlayerInput& inRaw, float dt)
 		in.moveX = in.moveY = 0.0f;
 		in.jump = false;
 	}
-	p.sneaking = in.sneak && !p.flying && !p.swimming && p.levitate <= 0.0f;
+	p.sneaking = in.sneak && !p.flying && !p.noClip && !p.swimming && p.levitate <= 0.0f;
 	float drop = p.knockTimer > 0.0f ? kKnockDrop : p.sneaking ? kSneakDrop : 0.0f;
 	p.eyeDrop += (drop - p.eyeDrop) * fminf(1.0f, dt * 8.0f);
 	p.yaw += in.lookX * kLookSpeed * dt;
@@ -640,14 +640,20 @@ void playerUpdate(Player& p, Scene& scene, const PlayerInput& inRaw, float dt)
 	float dirX = sy * in.moveY + cy * in.moveX;
 	float dirY = cy * in.moveY - sy * in.moveX;
 
-	if (p.flying)
+	if (p.flying || p.noClip)
 	{
 		float speed = kFlySpeed * (in.fast ? 3.0f : 1.0f);
 		p.feet[0] += dirX * speed * dt;
 		p.feet[1] += dirY * speed * dt;
-		if (in.up) p.feet[2] += speed * dt;
+		if (in.up || (p.noClip && in.jump)) p.feet[2] += speed * dt;
 		if (in.down) p.feet[2] -= speed * dt;
 		p.vz = 0.0f;
+		if (p.noClip)
+		{
+			p.onGround = p.swimming = false;
+			p.fallTop = p.feet[2];
+			p.landedFall = 0.0f;
+		}
 		return;
 	}
 
