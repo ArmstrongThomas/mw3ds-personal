@@ -1,12 +1,16 @@
 # MW3DS Personal
 
-Personal development checkout: `E:\Games\Morrowind\3ds\mw3ds-personal`.
+Personal development checkout: `mw3ds-personal`.
 Work continues on this repository's `main` branch. It includes the stylus controls and the subsequent loading,
 performance, minimap, and stats changes. The published `ArmstrongThomas/mw3ds` stylus implementation is separate.
 
 The `upstream` remote points to `https://github.com/3ds-conspiracy/mw3ds.git`. This checkout retains the original
 Git history so upstream changes can be fetched, reviewed, and merged. It currently includes upstream through
-`8b79e43`. No personal GitHub publishing remote is configured yet.
+`8b79e43`. The personal publishing remote is `origin`:
+`https://github.com/ArmstrongThomas/mw3ds-personal.git`.
+
+This is a separate GitHub repository, retaining shared Git history and `upstream` for normal merges. It does not
+occupy or change the existing stylus fork's GitHub relationship.
 
 ## Current changes
 
@@ -24,7 +28,7 @@ is limited by missing DSP firmware in the test emulator; the loading-music fix s
 
 ## Build
 
-The local, ignored `.env` points to `C:/devkitPro/msys2`. With Python available:
+The local, ignored `.env` selects the devkitPro/MSYS2 installation. With Python available:
 
 ```powershell
 python tools/build/make.py

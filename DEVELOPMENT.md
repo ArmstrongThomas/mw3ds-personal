@@ -53,7 +53,8 @@ git diff HEAD...upstream/main
 ```
 
 Review changes before merging and run appropriate regressions afterward. Preserve history so later merges remain
-possible. There is no personal publishing remote yet. Never push personal changes to the old stylus repository.
+possible. `origin` is `ArmstrongThomas/mw3ds-personal`; `git push origin main` publishes reviewed personal changes.
+Never push personal changes to the old stylus repository.
 
 Before a handoff, update the handoff/specs, record test outcomes and limitations, inspect the diff, and commit the
 source/docs checkpoint locally. Keep local device/tool notes in `HANDOFF.local.md`, not tracked documentation.

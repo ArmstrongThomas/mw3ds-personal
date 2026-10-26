@@ -1,6 +1,6 @@
 # Personal stats screen and loading music
 
-The personal checkout lives at `E:\Games\Morrowind\3ds\mw3ds-personal`, on `main`, retaining the upstream history.
+The personal checkout is `mw3ds-personal`, on `main`, retaining the upstream history.
 The separate `ArmstrongThomas/mw3ds` stylus repository is not modified or used as a publishing remote here.
 
 ## Stats

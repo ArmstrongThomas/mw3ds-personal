@@ -6,8 +6,8 @@ Read `DEVELOPMENT.md` for commands and `FORK.md` for repository identity.
 
 - This checkout is the personal fork. Keep work on its `main` branch unless asked otherwise. Preserve upstream history
   and licenses. The separate `ArmstrongThomas/mw3ds` stylus repository/branch must remain unchanged.
-- Review upstream changes before merging. `upstream` is the original project; no personal publishing remote is
-  currently configured. Do not publish or push to the stylus repository as a substitute.
+- Review upstream changes before merging. `upstream` is the original project; `origin` is
+  `ArmstrongThomas/mw3ds-personal`. Do not publish or push to the stylus repository as a substitute.
 - Never commit converted game assets, saves, DSP firmware, build products, `.env`, or `HANDOFF.local.md`.
 - Preserve the existing Morrowind typography, palette, frames, and splash art. Full-screen loading status/progress
   belongs on the bottom screen; in-game loading feedback remains on top. Support touch and physical controls.

@@ -10,9 +10,9 @@ including its uncommitted work. The old checkout's branches/remotes were not cha
 separate published stylus implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
 
 Remote `upstream`: `https://github.com/3ds-conspiracy/mw3ds.git`. Included upstream main: `8b79e43`; latest fetch in
-the earlier checkout was October 26. The history includes stylus commit `a7fdf681` and merge `dc12aff`. No new personal
-GitHub repository or publishing remote has been created. Continue here for personal changes and review/merge future
-upstream updates as needed.
+the earlier checkout was October 26. The history includes stylus commit `a7fdf681` and merge `dc12aff`. The user chose
+a separate personal repository, preserving normal upstream merging. Publishing remote `origin` is
+`https://github.com/ArmstrongThomas/mw3ds-personal.git`. Continue here and review/merge future upstream updates.
 
 ## Latest completed work
 
@@ -67,8 +67,9 @@ marker, shrine tooltip, worn-effect, save, shutdown, and Old 3DS compatibility r
    Per-piece timings exist to investigate the remaining cost. Player outfit changes were much cheaper.
 5. The old `bug-outdoor-stream-textures` falling warning was reproduced on the unchanged baseline at
    (-19174, 49552, 1330), vertical speed -1756. Do not report that scenario as a clean pass or a new regression.
-6. GitHub publishing of this personal fork is not done. The original stylus issue response is already published;
-   do not create or alter that response for these personal changes unless requested.
+6. The personal repository is `https://github.com/ArmstrongThomas/mw3ds-personal`. Shared history and `upstream` allow
+   normal Git merges without GitHub's formal fork badge/Sync fork button. The original stylus issue response is
+   already published; do not alter it for these personal changes unless requested.
 
 ## Supporting docs
 
