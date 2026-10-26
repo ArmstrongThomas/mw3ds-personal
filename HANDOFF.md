@@ -57,13 +57,12 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
 `mw3ds-personal.3dsx`. SHA-256: `8666df78713e637c02999362561775b38a8ddf0b10e0d733dcc82b20bb7af118`
 (2,392,836 bytes).
-Both native and devkitPro builds pass. The blood-preload and TCL builds were sent over 3dslink on October 26; the
-save/load rework, its drag-scroll fix and the save-thumbnail build are built and tested but netloader was unreachable
-when sending the rework (connection failed). New 3DS XL feedback on the earlier build: equipment preload makes combat
-smooth; a quick switch to a weapon not yet cached still shows one load, then that weapon stays cached. Minimap labels
-persist across taps and between the minimap and full map; very long names span much of the screen but were accepted.
-The scrolled Stats lists were confirmed better. The blood-splat preload, TCL behavior and the save/load rework are
-pending hardware confirmation. Audible loading music still needs a listening check.
+Both native and devkitPro builds pass. The blood-preload, TCL, save/load rework and full save-preview builds were sent
+over 3dslink on October 26. New 3DS XL feedback on the earlier build: equipment preload makes combat smooth; a quick
+switch to a weapon not yet cached still shows one load, then that weapon stays cached. Minimap labels persist across taps
+and between the minimap and full map; very long names span much of the screen but were accepted. The scrolled Stats
+lists were confirmed better. The blood-splat preload, TCL behavior and the save/load preview are pending hardware
+confirmation. Audible loading music still needs a listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
