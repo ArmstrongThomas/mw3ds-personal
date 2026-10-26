@@ -103,6 +103,42 @@ bool screenshotSaveTexture(C3D_Tex*, const char*)
 	return false;
 }
 
+// A small raw RGB565 thumbnail of the top screen, fitted inside width x height (the rest black). The top screen is
+// 400 x 240; readPixel() undoes the framebuffer's rotation. Called before the "Saving..." screen is drawn, so the
+// picture is the world the save was made in.
+bool screenshotSaveThumbnail(const char* path, int width, int height)
+{
+	if (!path || width <= 0 || height <= 0)
+		return false;
+	const u8* fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, nullptr, nullptr);
+	if (!fb)
+		return false;
+	GSPGPU_FramebufferFormat fmt = gfxGetScreenFormat(GFX_TOP);
+	u16* img = (u16*)calloc((size_t)width * height, sizeof(u16));
+	if (!img)
+		return false;
+	float scale = (float)width / kImgW;
+	if ((float)height / kImgH < scale)
+		scale = (float)height / kImgH;
+	float cw = kImgW * scale, ch = kImgH * scale, ox = (width - cw) * 0.5f, oy = (height - ch) * 0.5f;
+	for (int y = 0; y < height; y++)
+		for (int x = 0; x < width; x++)
+		{
+			float fx = (x - ox) / scale, fy = (y - oy) / scale;
+			if (fx < 0.0f || fy < 0.0f || fx >= kImgW || fy >= kImgH)
+				continue;
+			u8 bgr[3];
+			readPixel(fb, fmt, (int)fx, (int)fy, bgr);
+			img[y * width + x] = (u16)(((bgr[2] >> 3) << 11) | ((bgr[1] >> 2) << 5) | (bgr[0] >> 3));
+		}
+	FILE* f = fopen(path, "wb");
+	bool ok = f && fwrite(img, sizeof(u16), (size_t)width * height, f) == (size_t)width * height;
+	if (f)
+		fclose(f);
+	free(img);
+	return ok;
+}
+
 void screenshotDrawThisFrame()
 {
 }

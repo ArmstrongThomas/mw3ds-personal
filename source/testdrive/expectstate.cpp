@@ -3,6 +3,7 @@
 #include <3ds.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <deque>
 #include <map>
@@ -75,6 +76,20 @@ std::optional<bool> numberOfState(Session& s, const std::string& what, const std
 		for (auto& sv : savesList(s.dataDir))
 			if (!sv.autosave && !sv.bundled)
 				v++;
+	}
+	else if (what == "savethumb")     // the newest player save has its .thumb beside it
+	{
+		v = 0;
+		for (auto& sv : savesList(s.dataDir))
+			if (!sv.autosave && !sv.bundled)
+			{
+				if (FILE* f = fopen((sv.path + ".thumb").c_str(), "rb"))
+				{
+					fclose(f);
+					v = 1;
+				}
+				break;
+			}
 	}
 	else if (what == "bounty") v = (float)w.bounty;
 	else if (what == "mapnotes") v = (float)w.mapNotes.size();                    // the player's map notes (Tribunal)

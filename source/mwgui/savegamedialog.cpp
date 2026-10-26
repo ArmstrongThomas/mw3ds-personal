@@ -17,7 +17,89 @@
 #include <citro2d.h>
 #include <cstdlib>
 #include <malloc.h>
+#include "platform/linear.hpp"
 
+// 64 x 32 RGB565 thumbnails written beside each save (engine.cpp, screenshotSaveThumbnail). A few are kept as
+// textures: the list shows three rows at a time and scrolling back to one need not read it again.
+static const int kThumbW = 64, kThumbH = 32;
+struct SaveThumb { C3D_Tex tex = {}; bool loaded = false, tried = false; u64 frame = 0; };
+static std::map<std::string, SaveThumb> s_thumbs;
+static u64 s_thumbFrame = 0;
+
+static void forgetSaveThumb(const std::string& path)
+{
+	auto it = s_thumbs.find(path);
+	if (it == s_thumbs.end())
+		return;
+	if (it->second.loaded)
+		deferredTexDelete(&it->second.tex);
+	s_thumbs.erase(it);
+}
+
+// The 3DS stores textures in 8 x 8 tiles in Morton (Z) order, not in image rows: an uploaded row-major picture
+// comes out as a checkerboard. Interleave the low 3 bits of x and y into the texel's place inside its tile; the
+// tiles themselves are row-major.
+static u32 morton(u32 x, u32 y)
+{
+	u32 i = (x & 7) | ((y & 7) << 8);
+	i = (i ^ (i << 2)) & 0x1313;
+	i = (i ^ (i << 1)) & 0x1515;
+	return (i | (i >> 7)) & 0x3F;
+}
+
+static void tileThumb(const std::vector<u16>& src, std::vector<u16>& dst)
+{
+	for (int y = 0; y < kThumbH; y++)
+		for (int x = 0; x < kThumbW; x++)
+			dst[((u32)(y & ~7) * kThumbW + (u32)(x & ~7) * 8 + morton((u32)x, (u32)y))] =
+				src[(size_t)y * kThumbW + x];
+}
+
+static C3D_Tex* saveThumb(const std::string& path)
+{
+	auto it = s_thumbs.find(path);
+	if (it == s_thumbs.end())
+		it = s_thumbs.insert({ path, SaveThumb() }).first;
+	SaveThumb& t = it->second;
+	t.frame = s_thumbFrame;
+	if (!t.tried)
+	{
+		t.tried = true;
+		if (FILE* f = fopen((path + ".thumb").c_str(), "rb"))
+		{
+			std::vector<u16> data((size_t)kThumbW * kThumbH);
+			if (fread(data.data(), sizeof(u16), data.size(), f) == data.size()
+				&& C3D_TexInit(&t.tex, kThumbW, kThumbH, GPU_RGB565))
+			{
+				std::vector<u16> tiled(data.size());
+				tileThumb(data, tiled);
+				C3D_TexUpload(&t.tex, tiled.data());
+				C3D_TexFlush(&t.tex);
+				C3D_TexSetFilter(&t.tex, GPU_NEAREST, GPU_NEAREST);
+				t.loaded = true;
+			}
+			fclose(f);
+		}
+	}
+	return t.loaded ? &t.tex : nullptr;
+}
+
+static void trimSaveThumbs()
+{
+	if (s_thumbs.size() <= 12)
+		return;
+	for (auto it = s_thumbs.begin(); it != s_thumbs.end();)
+	{
+		if (it->second.frame == s_thumbFrame)
+		{
+			++it;
+			continue;
+		}
+		if (it->second.loaded)
+			deferredTexDelete(&it->second.tex);
+		it = s_thumbs.erase(it);
+	}
+}
 static std::string formatTime(u64 ms)
 {
 	if (ms == 0)
@@ -378,7 +460,8 @@ static std::string saveFit(std::string text, float width, float scale)
 int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float y, float w, float h, bool keys)
 {
 	const UiInput& in = uiIn();
-	const float rowH = 32.0f;
+	const float rowH = 44.0f;
+	++s_thumbFrame;
 	uiPanel(x, y, w, h);
 	float ix = x + 4, iy = y + 4, iw = w - 8, ih = h - 8;
 	float content = saves.size() * rowH;
@@ -428,6 +511,16 @@ int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float 
 			uiRect(ix, ry, iw, rowH, col::select);
 		else if (i % 2 == 0)
 			uiRect(ix, ry, iw, rowH, col::panelLight);
+		// The saved picture (taken before the saving screen drew), or a plain tile when there is none
+		C3D_Tex* thumb = saveThumb(s.path);
+		if (thumb)
+		{
+			Tex3DS_SubTexture sub = { kThumbW, kThumbH, 0.0f, 1.0f, 1.0f, 0.0f };
+			C2D_Image img = { thumb, &sub };
+			C2D_DrawImageAt(img, ix + 6, ry + 6, 0.5f, nullptr, 1.0f, 1.0f);
+		}
+		else
+			uiRect(ix + 6, ry + 6, kThumbW, kThumbH, C2D_Color32(18, 14, 10, 255));
 		std::string title, sub;
 		if (s.autosave)
 		{
@@ -460,14 +553,15 @@ int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float 
 		}
 		std::string level = s.level > 0 ? "Lv " + std::to_string(s.level) : "";
 		float rightW = fmaxf(uiTextWidth(level, 0.4f), uiTextWidth(date, 0.34f));
-		float textW = iw - 18.0f - rightW;
-		uiText(ix + 6, ry + 1, 0.45f, titleColor, saveFit(title, textW, 0.45f));
+		float textX = ix + 78.0f;
+		float textW = fmaxf(20.0f, ix + iw - 8.0f - rightW - textX);
+		uiText(textX, ry + 5, 0.45f, titleColor, saveFit(title, textW, 0.45f));
 		if (!sub.empty())
-			uiText(ix + 6, ry + 16, 0.34f, subColor, saveFit(sub, textW, 0.34f));
+			uiText(textX, ry + 20, 0.34f, subColor, saveFit(sub, textW, 0.34f));
 		if (!level.empty())
-			uiTextRight(ix + iw - 8, ry + 3, 0.4f, subColor, level);
+			uiTextRight(ix + iw - 8, ry + 6, 0.4f, subColor, level);
 		if (date[0])
-			uiTextRight(ix + iw - 8, ry + 18, 0.34f, subColor, date);
+			uiTextRight(ix + iw - 8, ry + 22, 0.34f, subColor, date);
 		if (uiHit(ix, fmaxf(ry, iy), iw, fminf(rowH, iy + ih - ry)))
 		{
 			list.selected = (int)i;
@@ -485,6 +579,7 @@ int uiSaveList(UiList& list, const std::vector<SaveInfo>& saves, float x, float 
 	}
 	C2D_Flush();
 	C3D_SetScissor(GPU_SCISSOR_DISABLE, 0, 0, 0, 0);
+	trimSaveThumbs();
 	return result;
 }
 
@@ -522,11 +617,14 @@ void Session::drawSaves()
 					yn = i;
 			if (yn == 0)
 			{
-				remove(saveList[list.selected].path.c_str());
-				remove((saveList[list.selected].path + ".meta").c_str());
-				logf("saves: deleted %s", saveList[list.selected].path.c_str());
-				forgetSave(saveList[list.selected].path);
-				appendIndex("-\t" + fileOf(saveList[list.selected].path) + "\n");
+				std::string victim = saveList[list.selected].path;
+				remove(victim.c_str());
+				remove((victim + ".meta").c_str());
+				remove((victim + ".thumb").c_str());
+				logf("saves: deleted %s", victim.c_str());
+				forgetSave(victim);
+				forgetSaveThumb(victim);
+				appendIndex("-\t" + fileOf(victim) + "\n");
 				saveList = savesList(dataDir);
 				list.selected = std::max(0, std::min(list.selected, (int)saveList.size() - 1));
 				notify("Save deleted.");
@@ -612,8 +710,13 @@ void Session::drawSaves()
 
 void Session::finishSave()
 {
-	bool ok = w.saveGame(pendingSave.c_str());
+	std::string path = pendingSave;
 	pendingSave.clear();
+	bool ok = w.saveGame(path.c_str());
+	if (!ok)
+		remove((path + ".thumb").c_str());
+	else
+		forgetSaveThumb(path);       // the overwritten save's picture has changed
 	notify(ok ? "Game saved." : "Saving failed.");
 	if (ok)
 	{

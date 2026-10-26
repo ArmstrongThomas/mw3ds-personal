@@ -214,6 +214,7 @@ void C3D_TexFlush(C3D_Tex* t);
 void C3D_TexDelete(C3D_Tex* t);
 bool C3D_TexInit(C3D_Tex* t, u16 w, u16 h, int fmt);
 bool C3D_TexInitVRAM(C3D_Tex* t, u16 w, u16 h, int fmt);
+void C3D_TexUpload(C3D_Tex* t, const void* data);
 inline u32 C3D_TexCalcTotalSize(u32 s, int) { return s; }
 C3D_TexEnv* C3D_GetTexEnv(int id);
 void C3D_TexEnvInit(C3D_TexEnv* env);

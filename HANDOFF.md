@@ -43,8 +43,9 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 - Save / Load screen rework: two-line saved-game cards (character and place, level and date/time), a selected-row
   highlight, save count, scrolling, and a footer of New save / Save / Load / Delete / Back. Save overwrites the selected
   player save after a confirmation, so the list no longer has to grow for every save. Dragging scrolls freely past the
-  selected row; a save scrolled out of view is no longer selected, so Save cannot overwrite a hidden one. The title
-  screen's Load game list uses the same cards.
+  selected row; a save scrolled out of view is no longer selected, so Save cannot overwrite a hidden one. Each save also
+  carries a 64 x 32 RGB565 `.thumb` taken from the top screen before the saving screen draws; the list shows it (or a
+  plain tile when there is none). The title screen's Load game list uses the same cards.
 - Combat equipment is read ahead: equipped gear's first-person pieces (weapon, shield, tool, ammo in the bow and in
   flight), the selected spell's cast/bolt/hit/area visuals, and every blood splat a hit can throw are cached when the
   equipment or spell changes or at startup. Ready, draw, shot, first cast and the first successful hit no longer stop
@@ -53,15 +54,15 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `a56cb47f68985ce5219397407ccc9e277c39b1d0b23de5876aa9b162e3a60338`
-(2,389,332 bytes).
+`mw3ds-personal.3dsx`. SHA-256: `342791bcc1a140401de2709c9dbdb5b6f96d42a70b7b088e444d43e7c11bc82a`
+(2,391,012 bytes).
 Both native and devkitPro builds pass. The blood-preload and TCL builds were sent over 3dslink on October 26; the
-save/load rework and its drag-scroll fix are built and tested but netloader was unreachable when sending (connection
-failed). New 3DS XL feedback on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not
-yet cached still shows one load, then that weapon stays cached. Minimap labels persist across taps and between the
-minimap and full map; very long names span much of the screen but were accepted. The scrolled Stats lists were confirmed
-better. The blood-splat preload, TCL behavior and the save/load rework are pending hardware confirmation. Audible loading
-music still needs a listening check.
+save/load rework, its drag-scroll fix and the save-thumbnail build are built and tested but netloader was unreachable
+when sending the rework (connection failed). New 3DS XL feedback on the earlier build: equipment preload makes combat
+smooth; a quick switch to a weapon not yet cached still shows one load, then that weapon stays cached. Minimap labels
+persist across taps and between the minimap and full map; very long names span much of the screen but were accepted.
+The scrolled Stats lists were confirmed better. The blood-splat preload, TCL behavior and the save/load rework are
+pending hardware confirmation. Audible loading music still needs a listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -74,6 +75,7 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 | `feat-preload-blood` | 3 | All blood splats cached before the first hit; the hit adds no piece reads |
 | `feat-save-overwrite` | 6 | New save, reopen, overwrite selected save, list stays at one |
 | `feat-save-scroll` | 5 | Swipe past the selected save; it clears when scrolled out of view |
+| `feat-save-thumbnail` | 3 | A new save writes its 64 x 32 thumbnail and the list shows it |
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |

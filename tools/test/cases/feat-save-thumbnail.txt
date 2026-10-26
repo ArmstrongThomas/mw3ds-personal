@@ -1,0 +1,10 @@
+# start: Seyda Neen
+# A save writes a 64 x 32 thumbnail beside it, shown in the save/load list.
+1 0 0 0 0 MSG
+0.3 0 0 0 0 GOD
+0.3 0 0 0 0 SCREEN:saves
+0.3 0 0 0 0 A
+0.5 0 0 0 0
+0.3 0 0 0 0 EXPECT:saves:eq:1+EXPECT:savethumb:eq:1+SHOT
+0.3 0 0 0 0 B
+0.3 0 0 0 0 EXPECT:screen:none
