@@ -33,6 +33,29 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	// Third person (SELECT): the player's body drawn, the camera behind them; also character creation's
 	// face preview (previewFace)
 	PlayerBody body;
+	PlayerBody previewBody;
+	std::string previewChoice;
+	bool previewPending = false, previewError = false;
+	std::unique_ptr<NpcDressJob> dressJob;
+	unsigned dressPeakReads = 0;
+	int hudMapMode = -1; // -1: automatic, 0: world, 1: local
+	struct MiniMapView
+	{
+		int zoomIndex = 1;
+		bool follow = true;
+		float center[2] = {};
+		float zoom() const
+		{
+			static const float steps[] = { 0.5f, 1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 6.0f, 8.0f };
+			return steps[zoomIndex];
+		}
+	} hudMapViews[2];
+	int hudMapCell = -1;
+	bool hudMapIsLocal() const;
+	void prepareArrival();
+	unsigned arrivalFrames = 0;
+	std::string pendingSave;
+	void finishSave();
 	void viewCamera(RenderCamera& cam);
 	bool saveUnreadable = false;      // start(): the save asked for is there but won't read (nothing started over it)
 	std::string saveNeeds;            // ... because it was made with this add-on, which the data lacks ("tribunal")
@@ -43,7 +66,7 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	void freeMapTiles();
 	void updateLocalMap();            // inside a frame, before the screens are drawn
 	bool ensureMapTexture();
-	void drawMapView(float x, float y, float vw, float vh, float zoom, bool full, bool local);
+	void drawMapView(float x, float y, float vw, float vh, float zoom, bool full, bool local, bool interactive = false);
 	bool ended = false;
 	bool autotest = false;
 	bool kitV2() const { return testKit >= 2 || w.itemCount("uber_ring") > 0; }   // (also a run resumed from a v2 checkpoint)
@@ -345,6 +368,8 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	void drawHud();
 	void drawStandardHud();
 	void drawHudMenus();
+	void drawHudStatus(float right, float y);
+	void drawHudEffects(float x, float y, int limit, bool stylus);
 	std::vector<ActiveEffect> hudEffects();
 	void drawQuickStrip();
 	void drawMessage();

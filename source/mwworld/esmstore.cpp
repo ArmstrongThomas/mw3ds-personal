@@ -1220,7 +1220,7 @@ u32 GameData::enchantGlow(const std::string& itemId) const
 
 // Only the "ui" section, for the logos and the title screen before the game loads: they wrote in the 3DS's system font
 // until then, and the menus after them in Morrowind's
-bool gameLoadUiTheme(const char* path, UiThemeDef& t)
+bool gameLoadUiTheme(const char* path, UiThemeDef& t, std::vector<ArtRef>* splashes)
 {
 	s_dataDir = path;
 	size_t slash = s_dataDir.rfind('/');
@@ -1240,6 +1240,24 @@ bool gameLoadUiTheme(const char* path, UiThemeDef& t)
 		ok = !t.fontFile.empty();
 	}
 	sectionDone();
+	if (splashes)
+	{
+		splashes->clear();
+		if (const cJSON* art = section(root, "art"))
+		{
+			const cJSON* a;
+			cJSON_ArrayForEach(a, cJSON_GetObjectItem(art, "splash"))
+			{
+				ArtRef ref;
+				ref.file = str(a, "file");
+				ref.w = (int)num(a, "w");
+				ref.h = (int)num(a, "h");
+				if (!ref.file.empty() && ref.w > 0 && ref.h > 0)
+					splashes->push_back(ref);
+			}
+		}
+		sectionDone();
+	}
 	cJSON_Delete(root);
 	return ok;
 }

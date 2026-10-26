@@ -8,6 +8,7 @@
 
 #include "platform/linear.hpp"
 #include "components/debug/debuglog.hpp"
+#include "components/debug/loadprogress.hpp"
 #include "mwrender/renderingmanager.hpp"
 #include "components/files/zfile.hpp"
 
@@ -70,6 +71,7 @@ FpPiece* ViewModel::piece(World& w, const std::string& name)
 	u32 now = (u32)osGetTime();
 	if (bad != failedAt.end() && now - bad->second < 3000)
 		return nullptr;
+	loadingBlock("Updating equipment...");
 	bool missing = false;
 	u64 t0 = osGetTime();
 	FpPiece* p = fpLoadPiece(w, set.skeletons[0], name, &missing);

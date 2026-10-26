@@ -238,7 +238,8 @@ void Session::updateWindows()
 	{
 		mapViewSet = false;
 		freeMapTiles();
-		mapDoorTip = -1;
+		if (!g_touchLook || screen != SCR_NONE)
+			mapDoorTip = -1;
 		mapLocal = (w.current >= 0 && w.cells[w.current].interior) || mapLocalOutdoors;
 	}
 }

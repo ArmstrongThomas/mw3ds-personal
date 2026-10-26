@@ -287,8 +287,10 @@ void Session::viewModelUpdate(const PlayerInput& in, float dt)
 		if (in)
 			ammoIn = ammo->id;
 	}
-	vm.rebuild(w, show && !casting ? (wpn ? wpn->id.str() : toolItem ? toolItem->id : "") : "", show && !casting && oneHanded ? shield : "",
-		ammoIn);
+	// The face preview doesn't draw first-person arms. Build them once for the accepted choice on leaving it.
+	if (screen != SCR_RACE)
+		vm.rebuild(w, show && !casting ? (wpn ? wpn->id.str() : toolItem ? toolItem->id : "") : "", show && !casting && oneHanded ? shield : "",
+			ammoIn);
 	if (weaponDrawn && w.player.knockTimer > 0.0f && vm.action != VM_KNOCKDOWN)
 		vm.play(VM_KNOCKDOWN, "KnockDown");
 	if (blockUntil > w.time && vm.action == VM_IDLE && !shield.empty())
@@ -320,10 +322,41 @@ void Session::viewModelUpdate(const PlayerInput& in, float dt)
 	}
 	previewFace = screen == SCR_RACE;          // character creation: the face being chosen
 	if (!previewFace)
+	{
 		previewSpin = 0.0f;
+		if (previewPending)
+		{
+			previewBody.free(w);
+			previewPending = false;
+			previewChoice.clear();
+		}
+	}
 	if (thirdPerson || previewFace)
 	{
-		body.rebuild(w, weaponDrawn);
+		if (previewFace)
+		{
+			std::string choice = w.stats.race + (w.stats.female ? "|f|" : "|m|") + w.stats.head + "|" + w.stats.hair;
+			if (choice != previewChoice)
+			{
+				previewChoice = choice;
+				previewPending = true;
+				previewError = false;
+			}
+			if (previewPending)
+			{
+				previewBody.rebuild(w, weaponDrawn, true);
+				if (previewBody.ready && !previewBody.previewLoading)
+				{
+					previewError = !previewBody.previewFailed.empty();
+					if (!previewError)
+						std::swap(body, previewBody);
+					previewBody.free(w);
+					previewPending = false;
+				}
+			}
+		}
+		else
+			body.rebuild(w, weaponDrawn);
 		float speed = sqrtf(in.moveX * in.moveX + in.moveY * in.moveY) * w.player.runSpeed * w.player.loadSpeed;
 		// The arms do what the first-person ones do: a blow by the weapon's NPC group (a lockpick or probe swings as a
 		// one-handed weapon), a cast by its first effect's range, as NPCs do (npcCastSpell)

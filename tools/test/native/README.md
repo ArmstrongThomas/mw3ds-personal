@@ -39,6 +39,11 @@ build/native/touchlook_test.exe
 Run `feat-stylus-ui` through the runner below to check saved settings, both handedness layouts, action buttons,
 menu access, and equal swipe rotation at 30 and 60 FPS. Add `--shots build/shots/stylus` to render both screens.
 
+`forwardbuffer_test.cpp` and `streampriority_test.cpp` are standalone tests too. Compile each with
+`python -m ziglang c++ -std=c++17 -Isource tools/test/native/<name>.cpp -o build/native/<name>.exe` and run it.
+`perf-race-preview` checks that character creation reads no more than one new body model per frame, reaches a
+complete preview after race changes, and leaves the unseen first-person model alone while browsing.
+
 Build (only needed after changing `source/`; the runner builds if the exe is missing):
 
 ```sh

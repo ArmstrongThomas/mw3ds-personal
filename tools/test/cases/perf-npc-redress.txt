@@ -1,0 +1,23 @@
+# start: Seyda Neen
+# Defer all equipment model reads until inventory editing is finished.
+3 0 0 0 0 MSG
+60 0 0 0 0 UNTIL:refmeshes:fargoth:gt:0
+0.3 0 0 0 0 GOD:2+SEED:7+SLAY:fargoth
+1 0 0 0
+0.01 0 0 0 0 SNAP:refmeshes:fargoth
+0.01 0 0 0 0 SCREEN:inventory+REFADDITEM:fargoth:common_shirt_04:-1
+2 0 0 0
+0.01 0 0 0 0 EXPECT:refmeshes:fargoth:eq:@0+EXPECT:refdressed:fargoth:eq:0+EXPECT:dresspending:eq:0+EXPECT:dresspeakreads:eq:0
+0.01 0 0 0 0 REFADDITEM:fargoth:common_pants_04:-1
+2 0 0 0
+0.01 0 0 0 0 EXPECT:dresspending:eq:0+EXPECT:refdressed:fargoth:eq:0+EXPECT:dresspeakreads:eq:0
+0.01 0 0 0 0 HUD:off+SCREEN:none
+5 0 0 0 0 UNTIL:dresspending:eq:1
+0.01 0 0 0 0 EXPECT:refmeshes:fargoth:eq:@0
+0.01 0 0 0 0 EXPECT:worldpaused:eq:1+SNAP:worldtime
+0.05 0 0 0
+0.01 0 0 0 0 EXPECT:worldtime:eq:@0+EXPECT:dresspresented:eq:1+SHOT
+5 0 0 0 0 UNTIL:refdressed:fargoth:eq:1
+0.01 0 0 0 0 EXPECT:dresspending:eq:0+EXPECT:refdressed:fargoth:eq:1+EXPECT:dresspeakreads:le:1
+0.01 0 0 0 0 HUD:on
+0.3 0 0 0 0 SHOT

@@ -2,6 +2,7 @@
 #define _GNU_SOURCE        // newlib: fopencookie
 #endif
 #include "components/files/zfile.hpp"
+#include "components/files/forwardbuffer.hpp"
 
 #include <3ds.h>
 #include <cstdlib>
@@ -10,6 +11,7 @@
 #include <zlib.h>
 
 #include "components/debug/debuglog.hpp"
+#include "mwsound/soundmanagerimp.hpp"
 
 char* zreadAll(const char* path, size_t* sizeOut)
 {
@@ -76,13 +78,14 @@ struct ZStream
 	u32 size, pos;            // inflated size, bytes handed out
 	bool end;
 	unsigned char in[16 * 1024];
+	ForwardReadBuffer output;
 };
 
 volatile int s_streams = 0;
 
-ssize_t zstreamRead(void* cookie, char* buf, size_t n)
+size_t inflateBlock(ZStream* s, char* buf, size_t n)
 {
-	ZStream* s = (ZStream*)cookie;
+	audioLoadingUpdate();
 	if (s->end || n == 0)
 		return 0;
 	s->z.next_out = (Bytef*)buf;
@@ -111,6 +114,14 @@ ssize_t zstreamRead(void* cookie, char* buf, size_t n)
 		}
 	}
 	size_t done = n - s->z.avail_out;
+	return done;
+}
+
+ssize_t zstreamRead(void* cookie, char* buf, size_t n)
+{
+	ZStream* s = (ZStream*)cookie;
+	// Keep stdio unbuffered for forward-only seeks, but batch zlib work across small field reads.
+	size_t done = s->output.read(buf, n, [&](char* block, size_t size) { return inflateBlock(s, block, size); });
 	s->pos += done;
 	return done;
 }
@@ -167,6 +178,7 @@ FILE* zopen(const char* path)
 			memcpy(&s->size, head + 4, 4);
 			s->pos = 0;
 			s->end = false;
+			s->output.reset();
 			if (inflateInit(&s->z) != Z_OK)
 			{
 				fclose(raw);

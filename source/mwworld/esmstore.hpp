@@ -190,4 +190,4 @@ struct GameData
 
 std::string lower(const std::string& s);
 bool gameLoad(GameData& game, const char* path);
-bool gameLoadUiTheme(const char* path, UiThemeDef& t);   // only game.json's "ui" (the startup, before the game loads)
+bool gameLoadUiTheme(const char* path, UiThemeDef& t, std::vector<ArtRef>* splashes = nullptr);

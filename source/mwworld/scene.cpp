@@ -14,7 +14,10 @@ extern "C" u32 __ctru_heap_size;
 #include "platform/memstat.hpp"
 #include <malloc.h>
 #include "components/debug/debuglog.hpp"
+#include "components/debug/loadprogress.hpp"
+#include "mwsound/soundmanagerimp.hpp"
 #include "mwworld/worldhelpers.hpp"
+#include "mwworld/streampriority.hpp"
 #include <array>
 #include <functional>
 #include <sys/stat.h>
@@ -428,6 +431,7 @@ static void integrateLevelCell(World& w, int index, LoadedCell* l)
 // linear heap and texture cache)
 static bool readLevelCell(const char* dataDir, const std::string& file, TextureCache& cache, LoadedCell* l)
 {
+	u64 started = osGetTime();
 	g_heapProbeFailed = false;
 	if (!cellLoad(l->cell, dataDir, (file + ".cel").c_str(), cache) || (g_streamCancel && threadGetCurrent()))
 	{
@@ -438,6 +442,7 @@ static bool readLevelCell(const char* dataDir, const std::string& file, TextureC
 	// (linear or heap memory short: readMesh / tryResize said no) frees the partials and fails the
 	// cell cleanly — it waits and is streamed again when there is room. Partial actor sets used to be
 	// kept, and a failed cell's textures and meshes used to leak with the job
+	u64 geometryDone = osGetTime();
 	if (!actorsLoad(l->actors, cellPath(dataDir, file, ".act").c_str(), dataDir, l->cell.textureNames)
 		&& !(l->actors.actors.empty() && l->actors.skeletons.empty()))
 	{
@@ -447,6 +452,8 @@ static bool readLevelCell(const char* dataDir, const std::string& file, TextureC
 	}
 	if (threadGetCurrent())
 		g_workerAt = "readLevelCell: actors read";
+	logf("load phases: %s geometry/textures %llu ms, actors %llu ms", file.c_str(),
+		geometryDone - started, osGetTime() - geometryDone);
 	return true;
 }
 
@@ -456,6 +463,7 @@ static bool loadLevelCell(World& w, int index)
 	LevelCell& lc = w.cells[index];
 	if (lc.live)
 		return true;
+	loadingBlock("Loading nearby terrain...");
 	if (!w.ensureRefs(index))
 		return false;
 	LoadedCell* l = new LoadedCell();
@@ -484,6 +492,7 @@ struct StreamJob
 	ParsedRefs objects;
 	bool objectsOk = false;
 	Thread thread = nullptr;
+	int core = -2;
 	volatile bool done = false;
 	bool ok = false;
 	u64 started = 0;
@@ -513,11 +522,15 @@ static void finishStreamJob(World& w, bool wait)
 	// (in steps: the streaming thread that runs out of memory waits for the main thread to give some back,
 	// Session::relieveMemory, instead of the two waiting on each other for good)
 	while (threadJoin(j->thread, 100000000ULL) != 0)          // (a timeout is not an R_FAILED result)
+	{
+		audioLoadingUpdate();
 		if (g_memoryLow && w.memoryLowHook)
 			w.memoryLowHook(false);
+	}
 	MARK("finishStreamJob: integrate");
 	threadFree(j->thread);
 	w.streamJob = nullptr;
+	u64 integrationStarted = osGetTime();
 	if (j->parseObjects && j->objectsOk)
 		appendRefs(w, j->index, j->objects);            // no-op if they were read meanwhile
 	const LevelCell& c = w.cells[j->index];
@@ -526,9 +539,11 @@ static void finishStreamJob(World& w, bool wait)
 		&& c.refsLoaded;
 	if (j->ok && wanted)
 	{
+		u64 integrated = osGetTime();
 		integrateLevelCell(w, j->index, j->cell);
-		logf("world: streamed %s in %llu ms (in the background), textures %lu KB, linear free %lu KB, heap used %d KB",
-			j->file.c_str(), osGetTime() - j->started, w.textures.bytes / 1024, linearSpaceFree() / 1024, mallinfo().uordblks / 1024);
+		logf("world: streamed %s in %llu ms (core %d), integrate %llu ms, textures %lu KB, linear free %lu KB, heap used %d KB",
+			j->file.c_str(), integrated - j->started, j->core, osGetTime() - integrationStarted,
+			w.textures.bytes / 1024, linearSpaceFree() / 1024, mallinfo().uordblks / 1024);
 	}
 	else
 	{
@@ -566,7 +581,17 @@ static void startStreamJob(World& w, int index)
 	// parallel; on the game's core if that can't be had
 	s32 prio = 0x30;
 	svcGetThreadPriority(&prio, CUR_THREAD_HANDLE);
-	j->thread = g_sysCoreThreads ? threadCreate(streamWorker, j, 64 * 1024, prio + 1, 1, false) : nullptr;
+	// The CIA already permits core 2. Homebrew launchers may not, so keep the existing fallbacks.
+	if (!g_profile.slowCpu)
+	{
+		j->thread = threadCreate(streamWorker, j, 64 * 1024, prio + 1, 2, false);
+		if (j->thread) j->core = 2;
+	}
+	if (!j->thread && g_sysCoreThreads)
+	{
+		j->thread = threadCreate(streamWorker, j, 64 * 1024, prio + 1, 1, false);
+		if (j->thread) j->core = 1;
+	}
 	if (!j->thread)
 		j->thread = threadCreate(streamWorker, j, 64 * 1024, prio + 1, -2, false);
 	if (j->thread)
@@ -575,6 +600,7 @@ static void startStreamJob(World& w, int index)
 	{
 		// No thread could be made: load it right here instead
 		logf("world: no streaming thread, loading %s now", j->file.c_str());
+		loadingBlock("Loading nearby terrain...");
 		if (w.ensureRefs(index) && readLevelCell(w.dataDir, j->file, w.textures, j->cell))
 			integrateLevelCell(w, index, j->cell);
 		else
@@ -788,13 +814,24 @@ void World::streamExterior(bool all)
 	// Load the missing neighbours, the player's own cell first: all now (behind a loading screen),
 	// or one at a time on the streaming thread
 	finishStreamJob(*this, all);
-	static const int order[9][2] = { {0, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, 1}, {1, -1}, {-1, -1} };
-	for (auto& o : order)
+	static const int offsets[9][2] = { {0, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {-1, 1}, {1, -1}, {-1, -1} };
+	std::array<int, 9> order;
+	for (size_t i = 0; i < order.size(); i++)
+		order[i] = gridCell(c.gx + offsets[i][0], c.gy + offsets[i][1]);
+	// Read the boundary nearest the player before distant neighbours in a fixed compass order.
+	std::sort(order.begin(), order.end(), [&](int a, int b) {
+		if (a == b || a < 0) return false;
+		if (b < 0 || a == current) return true;
+		if (b == current) return false;
+		float da = streamCellDistance(cells[a].gx, cells[a].gy, player.feet[0], player.feet[1]);
+		float db = streamCellDistance(cells[b].gx, cells[b].gy, player.feet[0], player.feet[1]);
+		return da != db ? da < db : a < b;
+	});
+	for (int ci : order)
 	{
-		int ci = gridCell(c.gx + o[0], c.gy + o[1]);
 		if (ci < 0 || cells[ci].live)
 			continue;
-		if (o[0] == 0 && o[1] == 0)
+		if (ci == current)
 		{
 			// Never walk around in a cell that isn't there: the player's own cell loads now,
 			// the neighbours follow on the streaming thread (they start past the fog anyway)
@@ -857,6 +894,40 @@ void World::streamExterior(bool all)
 // how many. For an arrival behind the loading screen whose ground is another cell's: the Gnisis silt strider stop
 // stands 650 units from the cell to the north, whose rock the player lands on, and on the console that cell streamed
 // in a moment after the player had fallen through to the gully below
+void World::prepareArrival()
+{
+	if (current < 0 || cells[current].interior)
+		return;
+	finishStreamJob(*this, true);
+	const int gx = cells[current].gx, gy = cells[current].gy;
+	std::vector<int> pending;
+	for (int y = -1; y <= 1; y++)
+		for (int x = -1; x <= 1; x++)
+		{
+			int ci = gridCell(gx + x, gy + y);
+			if (ci >= 0 && !cells[ci].live)
+				pending.push_back(ci);
+		}
+	unsigned done = 0;
+	loadingWork("Loading nearby cells...", 0, pending.size());
+	for (int ci : pending)
+	{
+		if (linearSpaceFree() < (5u << 20) || (g_profile.streamWaitsForBlock
+			&& !((size_t)mallinfo().uordblks + (5u << 20) < __ctru_heap_size && heapLargestBlock() >= 1536u * 1024u)))
+		{
+			logf("arrival: %u nearby cells deferred for memory", (unsigned)pending.size() - done);
+			break;
+		}
+		if (!loadLevelCell(*this, ci))
+		{
+			logf("arrival: failed to prepare %s", cells[ci].file.c_str());
+			break;
+		}
+		loadingWork("Loading nearby cells...", ++done, pending.size());
+	}
+	logf("arrival: prepared %u/%u missing nearby cells before simulation", done, (unsigned)pending.size());
+}
+
 int World::loadCellsNear(const float pos[3], float reach)
 {
 	if (current < 0 || cells[current].interior)
@@ -941,6 +1012,8 @@ int Session::trimSkeletons()
 		keep.push_back(a.skeleton);
 	if (body.skel >= 0)
 		keep.push_back(body.skel);
+	if (previewBody.skel >= 0 && previewBody.ready)
+		keep.push_back(previewBody.skel);
 	int kb = skeletonsTrim(keep);
 	if (kb > 0)
 		logf("memory: %d KB of animation skeletons let go, heap used %d KB", kb, mallinfo().uordblks / 1024);

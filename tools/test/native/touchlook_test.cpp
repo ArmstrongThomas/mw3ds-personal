@@ -6,10 +6,12 @@
 int main()
 {
 	TouchLook t;
-	assert(t.update(true, true, 100, 100));
+	assert(t.update(true, true, 120, 100));
 	assert(t.dx == 0 && t.dy == 0);
-	assert(t.update(true, true, 120, 90));
+	assert(t.update(true, true, 140, 90));
 	assert(t.dx == 20 && t.dy == -10);
+	assert(t.update(true, true, 80, 100));
+	assert(t.dx == -60);
 	// A swipe remains camera input over the menu row, through release.
 	assert(t.update(true, true, 140, 222));
 	assert(t.update(false, true, 0, 0));
@@ -23,7 +25,7 @@ int main()
 	assert(t.update(false, false, 0, 0));
 	// A button-origin gesture cannot turn into a camera gesture or activate on release over the pad.
 	assert(!t.update(true, true, 20, 222));
-	assert(t.update(true, true, 20, 100));
+	assert(t.update(true, true, 140, 100));
 	assert(t.dx == 0 && t.dy == 0);
 	assert(t.update(false, true, 0, 0));
 	// Ordinary taps outside the pad, and menu drags, remain UI input.
@@ -33,6 +35,20 @@ int main()
 	assert(!t.update(true, false, 30, 120));
 	assert(!t.update(false, false, 0, 0));
 	assert(TouchLook::contains(6, 48));
+	assert(!TouchLook::contains(60, 58));
+	assert(!TouchLook::contains(258, 58, true));
+	assert(!TouchLook::contains(50, 100));
+	assert(!t.update(true, true, 50, 100));
+	assert(t.owner == TouchLook::MAP);
+	assert(!t.update(true, true, 140, 100));
+	assert(t.dx == 0 && t.dy == 0);
+	assert(!t.update(false, true, 0, 0));
+	assert(!TouchLook::contains(250, 100, true));
+	assert(TouchLook::contains(60, 58, true));
+	assert(!TouchLook::contains(125, 155, false, 1));
+	assert(!TouchLook::contains(20, 155, true, 1));
+	assert(!t.update(true, true, 60, 58));
+	assert(!t.update(false, true, 0, 0));
 	assert(!TouchLook::contains(314, 100));
 	assert(!TouchLook::contains(20, 174));
 	for (int i = 0; i < 5; i++)

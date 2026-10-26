@@ -36,7 +36,14 @@ void Session::drawRace()
 	for (int i = 0; i < 8; i++)
 		text += "  " + attrName(w, i) + " " + std::to_string(r->attributes[i][w.stats.female ? 1 : 0]) + "\n";
 	uiPanel(124, 24, 192, 96);
-	uiTextBox(scroll, 126, 26, 188, 92, text, 0.45f, false);
+	if (previewPending || previewError)
+	{
+		uiRect(126, 26, 188, 20, col::select);
+		uiTextCentered(220, 27, 0.45f, col::header, previewError ? "Preview unavailable" : "Loading preview...");
+		uiTextBox(scroll, 126, 48, 188, 70, text, 0.45f, false);
+	}
+	else
+		uiTextBox(scroll, 126, 26, 188, 92, text, 0.45f, false);
 
 	const UiInput& in = uiIn();
 	// The C-stick turns the face on the top screen (its camera goes round the head), 150 degrees a second at full push

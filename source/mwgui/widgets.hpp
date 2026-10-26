@@ -19,6 +19,7 @@ struct UiInput
 	u32 down, held, up;
 	bool touching;        // finger on the screen this frame
 	bool tapped;          // finger lifted this frame without dragging: tap at (tapX, tapY)
+	bool mapDragging = false;
 	int touchX, touchY, tapX, tapY;
 	int dragDX, dragDY;   // drag since last frame
 	float stickY;         // the C-stick up / down, -1 (up) to 1 (down): scrolls a text pane

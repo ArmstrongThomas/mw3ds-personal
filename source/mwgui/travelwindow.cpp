@@ -115,6 +115,7 @@ void Session::finishTravel()
 		w.relocate(followers[k], c, pos, w.player.yaw);
 	}
 	fade = 1.0f;
+	prepareArrival();
 	fadeRate = 1.0f;                     // (back over a second, as OpenMW's TravelWindow: fadeScreenIn(1))
 	if (!autotest)
 		save();

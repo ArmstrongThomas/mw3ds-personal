@@ -10,6 +10,8 @@ struct WindowManagerState
 	DevConsole console;              // the in-game console (Options): its output, history and selected object
 	Dialogue dlg;
 	Screen screen = SCR_NONE;
+	int statsTab = 0, statsSkillGroup = 0, statsSkillPage = 0, statsFactionPage = 0;
+	int statsRowsShown = 0, statsPageCount = 1;
 	std::vector<MessageState> messages;
 	std::vector<ScriptMenu> pendingMenus;
 	bool wantName = false;            // main loop shows the system keyboard between frames

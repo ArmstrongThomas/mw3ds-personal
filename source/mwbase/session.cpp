@@ -16,6 +16,7 @@
 #include "components/debug/debuglog.hpp"
 #include <malloc.h>
 #include "mwbase/sessionhelpers.hpp"
+#include "components/debug/loadprogress.hpp"
 
 
 void Session::shutdown()
@@ -32,6 +33,8 @@ void Session::shutdown()
 	MARK("shutdown: hands and body");
 	vm.free(w);
 	body.free(w);
+	previewBody.free(w);
+	dressJob.reset();
 	u64 t1 = osGetTime();
 	MARK("shutdown: cells");
 	w.freeAll();
@@ -82,8 +85,19 @@ bool cadenceOn(int which)
 
 // The menus that stop the world (OpenMW: a GUI mode stops the simulation). Talk, barter and the other
 // services with an NPC don't (he keeps moving, as in Morrowind), nor do rest, travel, death or creation.
+void Session::prepareArrival()
+{
+	w.prepareArrival();
+	loadingWork("Preparing character...", 0, 1);
+	viewModelUpdate(PlayerInput{}, 0.0f);
+	loadingWork("Preparing character...", 1, 1);
+	arrivalFrames = 2;
+}
+
 bool Session::worldPaused() const
 {
+	if (arrivalFrames || dressJob)
+		return true;
 	if (dlg.open)
 		return false;
 	switch (screen)
@@ -98,6 +112,17 @@ bool Session::worldPaused() const
 
 void Session::update(const PlayerInput& inRaw, float dt)
 {
+	if (arrivalFrames)
+	{
+		--arrivalFrames;
+		return;
+	}
+	if (dressJob && !menuOpen())
+	{
+		if (dressJob->presented)
+			updateDress(0.0f);
+		return;
+	}
 	// Gyro aim's calibration, as it went (main's gyroInput)
 	extern int g_gyroCalNotice;
 	if (g_gyroCalNotice)
@@ -127,7 +152,7 @@ void Session::update(const PlayerInput& inRaw, float dt)
 
 	openPendingMenu();
 
-	bool menu = menuOpen() || wantName;
+	bool menu = menuOpen() || wantName || dressJob;
 	PlayerInput in = inRaw;
 	playerControls(in, menu);
 	playerMove(in, dt, t);
@@ -203,7 +228,7 @@ void Session::update(const PlayerInput& inRaw, float dt)
 	updateMusic(dt);
 	profAdd(PROF_SOUND, t);
 	updateSky();
-	updateDress(dt);
+	updateDress(frameDt);
 	profAdd(PROF_TAIL, t);
 	updateRegionSounds(dt);
 	profAdd(PROF_SOUND, t);

@@ -205,12 +205,13 @@ bool TestDriver::expect(Session& s, const std::string& spec, bool quiet)
 	{
 		// EXPECT:maptip:<cell>: the local map shows where the tapped door leads, the world map the tapped place's name
 		// ("none": no marker tapped)
+		bool local = s.screen == SCR_MAP ? s.mapLocal : s.hudMapIsLocal();
 		auto name = [&](int id) {
-			if (s.mapLocal)
+			if (local)
 				return id >= 0 && id < (int)w.refs.size() ? w.refs[id].destCell.str() : std::string();
 			return id >= 0 && id < (int)w.game.map.labels.size() ? w.game.map.labels[id].text : std::string();
 		};
-		std::string tip = name(s.mapLocal ? s.mapDoorTip : s.mapPlaceTip);
+		std::string tip = name(local ? s.mapDoorTip : s.mapPlaceTip);
 		ok = a[1] == "none" ? tip.empty() : lower(tip) == lower(spaced(a[1]));
 		snprintf(got, sizeof(got), "%.80s", tip.empty() ? "none" : tip.c_str());
 	}

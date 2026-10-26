@@ -1,0 +1,14 @@
+# start: Seyda Neen
+# Restoring the original outfit before closing the menu must not rebuild it.
+3 0 0 0 0 MSG
+60 0 0 0 0 UNTIL:refmeshes:fargoth:gt:0
+0.3 0 0 0 0 GOD:2+SEED:7+SLAY:fargoth
+1 0 0 0
+0.01 0 0 0 0 SNAP:refmeshes:fargoth
+0.01 0 0 0 0 SCREEN:inventory+REFADDITEM:fargoth:common_shirt_04:-1
+2 0 0 0
+0.01 0 0 0 0 REFADDITEM:fargoth:common_shirt_04:1
+2 0 0 0
+0.01 0 0 0 0 SCREEN:none
+2 0 0 0
+0.01 0 0 0 0 EXPECT:dresspending:eq:0+EXPECT:dresspeakreads:eq:0+EXPECT:refdressed:fargoth:eq:0+EXPECT:refmeshes:fargoth:eq:@0

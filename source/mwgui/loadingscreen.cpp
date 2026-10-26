@@ -18,6 +18,7 @@
 #include "mwbase/session.hpp"
 #include "mwinput/inputmanagerimp.hpp"
 #include "mwgui/loadingscreen.hpp"
+#include "components/debug/loadprogress.hpp"
 
 // Clears the 3D screen's target to an 0xRRGGBBAA colour. The GPU's fill writes the value's low bits as they
 // are, so the Old 3DS's 16-bit target (platform/console.hpp rgb565) takes the colour packed as RGB565: an RGBA8 black
@@ -33,12 +34,17 @@ void clearTop(C3D_RenderTarget* target, u32 rgba)
 std::vector<ArtRef> g_splashes;
 static std::string s_splashFor;
 static int s_splash = -1;
+static bool s_drawingLoading = false;
 
 void drawLoading(C3D_RenderTarget* top, C3D_RenderTarget* bottom, const char* text,
-	const char* detail, float seconds)
+	const char* detail, float seconds, unsigned done, unsigned total)
 {
 	// (marked: the Old 3DS froze on hardware right after New game, before anything the load logs)
+	if (s_drawingLoading)
+		return;
+	s_drawingLoading = true;
 	const char* savedAt = g_mainAt;
+	audioLoadingUpdate();
 	UiInput none = {};
 	MARK("loading screen: ui");
 	uiBeginFrame(none);
@@ -52,41 +58,44 @@ void drawLoading(C3D_RenderTarget* top, C3D_RenderTarget* bottom, const char* te
 	C2D_SceneBegin(top);
 	if (!g_splashes.empty())
 	{
-		if (s_splashFor != text)
+		if (s_splashFor != text || s_splash < 0 || s_splash >= (int)g_splashes.size())
 		{
 			s_splashFor = text;
 			s_splash = rand() % g_splashes.size();
 		}
 		const ArtRef& a = g_splashes[s_splash];
-		if (uiArt(a.file, a.w, a.h, 0, 0, 400, 240))
-		{
-			uiRect(0, 204, 400, 36, 0xA0000000);
-			uiTextCentered(200, 212, 0.5f, col::text, text);
-		}
-		else
+		if (!uiArt(a.file, a.w, a.h, 0, 0, 400, 240))
 		{
 			uiTextCentered(200, 100, 0.8f, col::header, "Morrowind");
-			uiTextCentered(200, 132, 0.5f, col::textDim, text);
 		}
 	}
 	else
 	{
 		uiTextCentered(200, 100, 0.8f, col::header, "Morrowind");
-		uiTextCentered(200, 132, 0.5f, col::textDim, text);
 	}
 	C2D_TargetClear(bottom, C2D_Color32(10, 8, 6, 255));
 	C2D_SceneBegin(bottom);
-	uiTextCentered(160, 40, 0.5f, col::textDim, "MW3DS");
+	uiTextCentered(160, 8, 0.45f, col::textDim, "MW3DS");
+	uiRect(8, 36, 304, total ? 68 : 44, C2D_Color32(0, 0, 0, 220));
+	uiFrame(8, 36, 304, total ? 68 : 44);
+	uiTextCentered(160, 46, 0.5f, col::header, text);
+	if (total)
+	{
+		uiBar(24, 72, 272, 16, fminf(1.0f, (float)done / total), col::header);
+		char count[48];
+		snprintf(count, sizeof(count), "%u / %u", done, total);
+		uiTextCentered(160, 90, 0.36f, col::textPressed, count);
+	}
 	// What the loader is doing (its last log line), so a hang shows where it stopped
 	if (seconds >= 0.0f)
 	{
 		char buf[32];
 		snprintf(buf, sizeof(buf), "%.0f s", seconds);
-		uiTextCentered(160, 80, 0.45f, col::textDim, buf);
+		uiTextCentered(160, 110, 0.45f, col::textDim, buf);
 	}
 	if (detail)
 	{
-		float y = 110;
+		float y = 136;
 		for (auto& line : uiWrap(detail, 300, 0.42f))
 		{
 			uiText(10, y, 0.42f, col::text, line);
@@ -98,6 +107,7 @@ void drawLoading(C3D_RenderTarget* top, C3D_RenderTarget* bottom, const char* te
 	MARK("loading screen: frame end");
 	C3D_FrameEnd(0);
 	g_mainAt = savedAt;
+	s_drawingLoading = false;
 }
 
 // While a load runs, each log line the main thread writes redraws the loading screen with it
@@ -109,6 +119,9 @@ static struct
 	u64 start, drawn;
 	u32 mainThread;
 	std::string last;
+	std::string phase;
+	unsigned done = 0, total = 0;
+	bool active = false;
 } s_progress;
 
 static void loadingProgress(const char* line)
@@ -117,12 +130,40 @@ static void loadingProgress(const char* line)
 	svcGetThreadId(&id, CUR_THREAD_HANDLE);
 	if (id != s_progress.mainThread)
 		return;
+	audioLoadingUpdate();
 	s_progress.last = line;
 	u64 now = osGetTime();
 	if (now - s_progress.drawn < 150)
 		return;
 	s_progress.drawn = now;
-	drawLoading(s_progress.top, s_progress.bottom, s_progress.title.c_str(), line, (now - s_progress.start) / 1000.0f);
+	drawLoading(s_progress.top, s_progress.bottom, s_progress.phase.c_str(), line, (now - s_progress.start) / 1000.0f,
+		s_progress.done, s_progress.total);
+}
+
+void loadingBlock(const char* phase)
+{
+	if (s_progress.active || !s_progress.top || !s_progress.bottom)
+		return;
+	u32 id = 0;
+	svcGetThreadId(&id, CUR_THREAD_HANDLE);
+	if (id == s_progress.mainThread)
+		drawLoading(s_progress.top, s_progress.bottom, phase);
+}
+
+void loadingWork(const char* phase, unsigned done, unsigned total)
+{
+	if (!s_progress.active)
+		return;
+	u32 id = 0;
+	svcGetThreadId(&id, CUR_THREAD_HANDLE);
+	if (id != s_progress.mainThread)
+		return;
+	s_progress.phase = phase;
+	s_progress.done = done;
+	s_progress.total = total;
+	s_progress.drawn = osGetTime();
+	drawLoading(s_progress.top, s_progress.bottom, phase, s_progress.last.c_str(),
+		(osGetTime() - s_progress.start) / 1000.0f, done, total);
 }
 
 // The game's own font and frames for the logos and the title screen: game.json's "ui" alone, before the game loads
@@ -130,8 +171,9 @@ static void loadingProgress(const char* line)
 void loadStartupTheme(const char* dataDir)
 {
 	UiThemeDef t;
-	if (gameLoadUiTheme((std::string(dataDir) + "/game.json").c_str(), t))
+	if (gameLoadUiTheme((std::string(dataDir) + "/game.json").c_str(), t, &g_splashes))
 		uiLoadTheme(dataDir, t);
+	logf("startup: %u loading splashes available before the world load", (unsigned)g_splashes.size());
 }
 
 // The title music (OpenMW's titleMusic), from the converter's fixed name: started once, for the Morrowind logo and the
@@ -493,8 +535,13 @@ LoadingProgress::LoadingProgress(C3D_RenderTarget* top, C3D_RenderTarget* bottom
 	s_progress.top = top;
 	s_progress.bottom = bottom;
 	s_progress.title = title;
+	s_progress.phase = title;
+	s_progress.last.clear();
+	s_progress.done = s_progress.total = 0;
+	s_progress.active = true;
 	s_progress.start = s_progress.drawn = osGetTime();
 	svcGetThreadId(&s_progress.mainThread, CUR_THREAD_HANDLE);
+	drawLoading(top, bottom, title.c_str());
 	logSetHook(loadingProgress);
 	gammaLoadStart();                // (the camera reading, where it is the light sensor: hidden by the load)
 }
@@ -505,7 +552,8 @@ LoadingProgress::~LoadingProgress()
 {
 	gammaLoadEnd();
 	logSetHook(nullptr);
-	std::string text = s_progress.last + "\n\nLoaded. Starting the first frame...";
+	s_progress.active = false;
+	std::string text = s_progress.last + "\n\nFinished. Preparing the view...";
 	drawLoading(s_progress.top, s_progress.bottom, s_progress.title.c_str(), text.c_str(),
 		(osGetTime() - s_progress.start) / 1000.0f);
 }

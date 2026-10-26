@@ -148,8 +148,11 @@ float audioStartVolume(const std::string& file)
 }
 int audioDeniedCount() { return s_denied; }
 
+static u32 s_audioThread = 0;
+
 bool audioInit(const char* dataDir)
 {
+	svcGetThreadId(&s_audioThread, CUR_THREAD_HANDLE);
 	s_dataDir = dataDir;
 	Result rc = ndspInit();
 	if (R_FAILED(rc))
@@ -601,6 +604,25 @@ void audioUpdate()
 	for (int i = 0; i < kStreamBufs; i++)
 		if (s_streamBuf[i].status == NDSP_WBUF_DONE || s_streamBuf[i].status == NDSP_WBUF_FREE)
 			fillStream(i);
+}
+
+void audioLoadingUpdate()
+{
+	u32 thread = 0;
+	svcGetThreadId(&thread, CUR_THREAD_HANDLE);
+	if (thread != s_audioThread)
+		return;
+	if (!s_enabled || s_playlist.empty())
+		return;
+	static u64 next = 0;
+	static bool pumping = false;
+	u64 now = osGetTime();
+	if (pumping || now < next)
+		return;
+	pumping = true;
+	next = now + 100;
+	audioUpdate();
+	pumping = false;
 }
 
 // The sound of water nearby (OpenMW's SoundManager::updateWaterSound and WaterSoundUpdater; the fallback values are

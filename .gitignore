@@ -33,3 +33,6 @@ native_prof.txt
 # Scratch repros and probes (run by name: scratch\<case>)
 tools/test/cases/scratch/
 .claude
+
+# This PC's tools, device details, and agent continuation notes
+/HANDOFF.local.md

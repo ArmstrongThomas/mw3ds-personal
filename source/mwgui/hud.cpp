@@ -8,6 +8,7 @@
 #include <cstdio>
 #include "mwgui/windowmanagerimp.hpp"
 #include "mwinput/touchlook.hpp"
+#include "platform/battery.hpp"
 #include <array>
 #include <functional>
 #include <sys/stat.h>
@@ -237,6 +238,22 @@ void Session::drawTop()
 		topModal = TopModal();
 	}
 	// A menu has stopped the world (both eyes draw it: it comes from the screen, not from a timer)
+	if (dressJob || arrivalFrames || quitSaving > 0)
+	{
+		const char* title = dressJob ? "Updating character..." : arrivalFrames ? "Preparing view..." : "Saving...";
+		uiRect(48, 88, 304, dressJob ? 68 : 44, C2D_Color32(0, 0, 0, 225));
+		uiFrame(48, 88, 304, dressJob ? 68 : 44);
+		uiTextCentered(200, 99, 0.55f, col::header, title);
+		if (dressJob)
+		{
+			unsigned total = dressJob->totalParts;
+			uiBar(62, 126, 276, 16, total ? (float)dressJob->reads / total : 0.0f, col::header);
+			char text[48];
+			snprintf(text, sizeof(text), "%u / %u parts", dressJob->reads, total);
+			uiTextCentered(200, 144, 0.36f, col::textPressed, text);
+			dressJob->presented = true;
+		}
+	}
 	if (worldPaused())
 	{
 		float pw = uiTextWidth("Paused", 0.5f);
@@ -339,15 +356,41 @@ void Session::drawHud()
 		}
 		uiRect(TouchLook::left, TouchLook::top, TouchLook::width, TouchLook::height, col::panel);
 		uiFrame(TouchLook::left, TouchLook::top, TouchLook::width, TouchLook::height);
-		uiTextCentered(160, 84, 0.55f, col::header, "Slide to look");
-		uiTextCentered(160, 108, 0.42f, col::text, "Lift the stylus to reposition");
-		uiTextCentered(160, 132, 0.42f, col::text, g_touchLeftHanded ? "ABXY: move   R: attack" : "Circle Pad: move   L: attack");
+		float mx = TouchLook::mapLeft(g_touchLeftHanded), hx = g_touchLeftHanded ? 104 : 216;
+		drawHudStatus(g_touchLeftHanded ? 198 : 306, 52);
+		bool local = hudMapIsLocal();
+		if (hudMapCell != w.current)
+		{
+			hudMapCell = w.current;
+			hudMapViews[0].follow = hudMapViews[1].follow = true;
+		}
+		auto& mapView = hudMapViews[local ? 1 : 0];
+		if (uiButton(mx, 48, 20, 20, "-", false, mapView.zoomIndex > (local ? 1 : 0)))
+			mapView.zoomIndex--;
+		if (uiButton(mx + 76, 48, 20, 20, "+", false, mapView.zoomIndex < 7))
+			mapView.zoomIndex++;
+		if (uiButton(mx + 24, 48, 48, 20, local ? "Local" : "World"))
+		{
+			hudMapMode = local ? 0 : 1;
+			if (!local)
+				localMapCell = -1;
+		}
+		local = hudMapIsLocal();
+		auto& activeMap = hudMapViews[local ? 1 : 0];
+		drawMapView(mx, 68, 96, 96, activeMap.zoom(), false, local, true);
+		bool worldIndoors = !local && w.current >= 0 && w.cells[w.current].interior;
+		if (uiButton(mx + 48, 144, 48, 20, worldIndoors ? "Center" : "Follow", activeMap.follow))
+			activeMap.follow = true;
+		uiTextCentered(hx, 80, 0.5f, col::header, "Slide to look");
+		uiTextCentered(hx, 102, 0.4f, col::text, "Lift to reposition");
+		uiTextCentered(hx, 120, 0.38f, col::text, g_touchLeftHanded ? "Move: ABXY" : "Move: Circle Pad");
+		uiTextCentered(hx, 134, 0.38f, col::text, g_touchLeftHanded ? "Attack: R" : "Attack: L");
+		drawHudEffects(g_touchLeftHanded ? 14 : 118, 148, 9, true);
 		static const char* actions[5] = { "Use", "Cast", "Jump", "Ready", "Sneak" };
 		for (int i = 0; i < 5; i++)
 			uiButton(TouchLook::actionLeft + i * TouchLook::actionStep, TouchLook::actionTop,
 				TouchLook::actionWidth, TouchLook::actionHeight, actions[i], i == 4 && w.player.sneaking);
 		drawQuickStrip();
-		hudEffectIcons = 0;
 	}
 	else
 		drawStandardHud();
@@ -386,31 +429,7 @@ void Session::drawStandardHud()
 	std::string spell = s.selectedSpell.empty() ? "" : w.game.spells[s.selectedSpell].name;
 	uiText(48, by + 18, 0.42f, spell.empty() ? col::textDim : col::link, spell.empty() ? "No spell" : spell);
 
-	// The active effects as Morrowind's HUD shows them (hudEffects); a tap shows what it is, how strong and for how
-	// long (OpenMW's tooltip on hover)
-	std::vector<ActiveEffect> shown = hudEffects();
-	hudEffectIcons = 0;
-	for (size_t k = 0; k < shown.size() && k < 10; k++)
-	{
-		auto me = w.game.magicEffects.find(shown[k].effect);
-		float ix = 6 + k * 17;
-		if (me == w.game.magicEffects.end() || me->second.iconIx < 0 || !uiIcon(me->second.iconIx, ix, 114, 15.0f))
-			continue;
-		hudEffectIcons++;
-		if (uiHit(ix, 114, 16, 16))
-		{
-			const ActiveEffect& sh = shown[k];
-			int flags = me->second.flags;
-			std::string line = effectLabel(sh.effect, sh.skill, sh.attribute);
-			if (!(flags & 0x8))
-				line += " " + std::to_string((int)roundf(sh.magnitude)) + " pts";
-			std::string left = sh.remaining > 1e8f ? "Constant" : sh.remaining >= 120.0f
-				? std::to_string((int)(sh.remaining / 60.0f)) + " min left" : std::to_string((int)ceilf(sh.remaining)) + " s left";
-			effectTip = { line, left + " (" + sh.source + ")" };
-			effectTipUntil = w.time + 3.0f;
-			playSound(-1, "Menu Click");
-		}
-	}
+	drawHudEffects(6, 114, 10, false);
 
 	// Messages
 	float y = 133;
@@ -466,9 +485,21 @@ void Session::drawStandardHud()
 		uiRect(312 - uiTextWidth(b, 0.4f) - 4, 140, uiTextWidth(b, 0.4f) + 4, 13, C2D_Color32(0, 0, 0, 170));
 		uiTextRight(311, 140, 0.4f, col::health, b);
 	}
-	char perf[64];
-	snprintf(perf, sizeof(perf), "%.0f fps", fps);
-	uiTextRight(312, 27, 0.34f, col::textDim, perf);
+	drawHudStatus(312, 27);
+}
+
+void Session::drawHudStatus(float right, float y)
+{
+	char text[48], battery[16];
+	int percent = batteryPercent();
+	if (percent >= 0)
+		snprintf(battery, sizeof(battery), "Bat %d%%", percent);
+	else
+		snprintf(battery, sizeof(battery), "Bat --");
+	snprintf(text, sizeof(text), "%.0f fps | %s", fps, battery);
+	float width = uiTextWidth(text, 0.4f);
+	uiRect(right - width - 3, y, width + 4, uiLineHeight(0.4f), C2D_Color32(0, 0, 0, 210));
+	uiTextRight(right, y, 0.4f, col::text, text);
 }
 
 void Session::drawHudMenus()
@@ -505,4 +536,34 @@ void Session::updateFadeAndNotes(float dt)
 			notes.erase(notes.begin() + i);
 		else
 			i++;
+}
+
+void Session::drawHudEffects(float x, float y, int limit, bool stylus)
+{
+	// The active effects as Morrowind's HUD shows them (hudEffects); a tap shows what it is, how strong and for how
+	// long (OpenMW's tooltip on hover)
+	std::vector<ActiveEffect> shown = hudEffects();
+	hudEffectIcons = 0;
+	for (size_t k = 0; k < shown.size() && hudEffectIcons < limit; k++)
+	{
+		auto me = w.game.magicEffects.find(shown[k].effect);
+		float ix = x + hudEffectIcons * (stylus ? 20 : 17);
+		if (me == w.game.magicEffects.end() || me->second.iconIx < 0 || !uiIcon(me->second.iconIx, ix, y, stylus ? 18.0f : 15.0f))
+			continue;
+		hudEffectIcons++;
+		if (uiHit(ix, y, stylus ? 20 : 16, stylus ? 24 : 16))
+		{
+			const ActiveEffect& sh = shown[k];
+			int flags = me->second.flags;
+			std::string line = effectLabel(sh.effect, sh.skill, sh.attribute);
+			if (!(flags & 0x8))
+				line += " " + std::to_string((int)roundf(sh.magnitude)) + " pts";
+			std::string left = sh.remaining > 1e8f ? "Constant" : sh.remaining >= 120.0f
+				? std::to_string((int)(sh.remaining / 60.0f)) + " min left" : std::to_string((int)ceilf(sh.remaining)) + " s left";
+			effectTip = { line, left + " (" + sh.source + ")" };
+			effectTipUntil = w.time + 3.0f;
+			playSound(-1, "Menu Click");
+		}
+	}
+
 }

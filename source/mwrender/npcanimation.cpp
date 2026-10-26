@@ -6,6 +6,7 @@
 
 #include "platform/linear.hpp"
 #include "components/debug/debuglog.hpp"
+#include "components/debug/loadprogress.hpp"
 #include <algorithm>
 #include <array>
 #include <functional>
@@ -36,7 +37,7 @@ const std::vector<std::pair<std::string, std::string>>* playerHeadChoices(const 
 	return it != map.end() && !it->second.empty() ? &it->second : nullptr;
 }
 
-void PlayerBody::rebuild(World& w, bool weaponOut)
+void PlayerBody::rebuild(World& w, bool weaponOut, bool preview)
 {
 	const ThirdPersonDef& t = w.game.firstPerson.third;
 	std::string race = lower(w.stats.race);
@@ -44,31 +45,36 @@ void PlayerBody::rebuild(World& w, bool weaponOut)
 	// The skeleton: the one NPCs of this race and sex use
 	if (!ready || race != forRace || (female != 0) != forFemale)
 	{
-		free(w);
-		skel = -1;
+		int nextSkel = -1;
 		for (auto& a : w.game.actors)
 			if (!a.creature && lower(a.race) == race && (a.female != 0) == (female != 0) && a.skel >= 0)
 			{
-				skel = a.skel;
+				nextSkel = a.skel;
 				break;
 			}
-		if (skel < 0)
+		if (nextSkel < 0)
 			for (auto& a : w.game.actors)
 				if (!a.creature && a.skel >= 0)
 				{
-					skel = a.skel;
+					nextSkel = a.skel;
 					break;
 				}
-		if (skel < 0)
+		if (nextSkel < 0)
 			return;
-		skeletonEnsure(skel);
-		set.actors.resize(1);
-		Actor& a = set.actors[0];
-		a = Actor();
-		a.ref = -1;
-		a.skeleton = skel;
-		a.pose.assign(g_sharedSkeletons[skel].bones.size() * 12, 0.0f);
-		a.place[0] = a.place[5] = a.place[10] = 1.0f;
+		// Parts bind to a skeleton, not a race name. Keep shared clothing when that binding hasn't changed.
+		if (!ready || skel != nextSkel)
+		{
+			free(w);
+			skel = nextSkel;
+			skeletonEnsure(skel);
+			set.actors.resize(1);
+			Actor& a = set.actors[0];
+			a = Actor();
+			a.ref = -1;
+			a.skeleton = skel;
+			a.pose.assign(g_sharedSkeletons[skel].bones.size() * 12, 0.0f);
+			a.place[0] = a.place[5] = a.place[10] = 1.0f;
+		}
 		forRace = race;
 		forFemale = female != 0;
 		ready = true;
@@ -152,9 +158,17 @@ void PlayerBody::rebuild(World& w, bool weaponOut)
 	std::string key;
 	for (int s = 0; s < kSlotCount; s++)
 		key += part[s] + (glow[s] ? "*|" : "|");
-	if (key == builtFor)
+	if (key == builtFor && !previewLoading)
 		return;
+	if (key != builtFor)
+	{
+		previewFailed.clear();
+		if (preview)
+			previewStarted = osGetTime();
+	}
 	builtFor = key;
+	previewLoading = false;
+	unsigned reads = 0;
 	Actor& a = set.actors[0];
 	a.meshes.clear();
 	textures.clear();
@@ -179,11 +193,27 @@ void PlayerBody::rebuild(World& w, bool weaponOut)
 		if (part[s].empty())
 			continue;
 		auto pit = pieces.find(part[s]);
+		if (preview && std::find(previewFailed.begin(), previewFailed.end(), part[s]) != previewFailed.end())
+			continue;
+		if (pit == pieces.end() && preview && reads >= 1)
+		{
+			previewLoading = true;
+			continue;
+		}
+		if (!preview && pit == pieces.end())
+			loadingBlock("Updating character...");
 		FpPiece* p = pit != pieces.end() ? pit->second : fpLoadPiece(w, sk, part[s]);
+		if (pit == pieces.end())
+		{
+			reads++;
+			pieceReads++;
+			if (p)
+				pieces[part[s]] = p;
+			else if (preview)
+				previewFailed.push_back(part[s]);
+		}
 		if (!p)
 			continue;
-		if (pit == pieces.end())
-			pieces[part[s]] = p;
 		fpRetryTextures(w, p);
 		for (auto& m : p->meshes)
 		{
@@ -197,7 +227,12 @@ void PlayerBody::rebuild(World& w, bool weaponOut)
 		}
 	}
 	a.deformed = false;
-	logf("playerbody: %d meshes on skeleton %d, %d pieces kept", (int)a.meshes.size(), skel, (int)pieces.size());
+	if (preview)
+		previewPeakReads = std::max(previewPeakReads, reads);
+	if (!previewLoading)
+		logf("playerbody: %d meshes on skeleton %d, %d pieces kept%s, preview %llu ms, %u piece reads total",
+			(int)a.meshes.size(), skel, (int)pieces.size(), preview ? " (preview ready)" : "",
+			preview && previewStarted ? osGetTime() - previewStarted : 0, pieceReads);
 }
 
 // Where a blow's wind-up holds, as a share of the way from the group's start to its hit: the min and max attack marks
@@ -396,16 +431,22 @@ void PlayerBody::free(World& w)
 	textures.clear();
 	builtFor.clear();
 	ready = false;
+	previewLoading = false;
+	previewFailed.clear();
 }
 
-bool npcDress(World& w, LoadedCell& l, Actor& a, const ActorDef& d, const std::vector<std::string>& items)
+bool NpcDressJob::begin(World& w, const Actor& a, const ActorDef& d, const std::vector<std::string>& items)
 {
+	ref = a.ref;
+	skeleton = a.skeleton;
+	id = d.id;
+	itemCount = items.size();
+	started = osGetTime();
 	const ThirdPersonDef& t = w.game.firstPerson.third;
 	std::string race = lower(d.race.str());
 	int female = d.female ? 1 : 0;
 	// The bare body of its race and sex (male parts where the female's are missing), its own head and hair
-	std::string part[kSlotCount];
-	u32 glow[kSlotCount] = {};
+	auto& part = parts;
 	for (int sex : { female, 0 })
 	{
 		auto it = t.races[sex].find(race);
@@ -459,19 +500,42 @@ bool npcDress(World& w, LoadedCell& l, Actor& a, const ActorDef& d, const std::v
 					glow[s.first] = w.game.enchantGlow(id);
 				}
 		}
-	// The pieces, read for this actor alone (a skin re-posed on the CPU writes its own vertices)
-	const Skeleton& sk = actorSkeleton(l.actors, a.skeleton);
-	std::vector<ActorMesh> made;
-	bool ok = true;
-	for (int s = 0; s < kSlotCount && ok; s++)
+	return true;
+}
+
+NpcDressJob::~NpcDressJob()
+{
+	for (auto& m : made)
 	{
+		lockedLinearFree(m.verts);
+		lockedLinearFree(m.indices);
+		for (void* v : m.pathFrames)
+			lockedLinearFree(v);
+	}
+}
+
+bool NpcDressJob::step(World& w, LoadedCell& l, Actor& a)
+{
+	auto& part = parts;
+	// Keep the old complete actor visible until the replacement is assembled.
+	const Skeleton& sk = actorSkeleton(l.actors, a.skeleton);
+	unsigned loaded = 0;
+	for (; nextSlot < kSlotCount; nextSlot++)
+	{
+		unsigned s = nextSlot;
 		if (part[s].empty())
 			continue;
+		if (loaded)
+			return false;
+		loaded++;
+		reads++;
+		u64 readStart = osGetTime();
 		FpPiece* p = fpLoadPiece(w, sk, part[s]);
+		u64 readMs = osGetTime() - readStart;
 		if (!p)
 		{
-			ok = false;
-			break;
+			failed = true;
+			return true;
 		}
 		for (auto& m : p->meshes)
 		{
@@ -494,15 +558,8 @@ bool npcDress(World& w, LoadedCell& l, Actor& a, const ActorDef& d, const std::v
 		}
 		p->meshes.clear();                // (their buffers are the actor's now; the piece gives back its own textures)
 		fpFreePiece(w, p);
-	}
-	if (!ok)
-	{
-		for (auto& m : made)
-		{
-			lockedLinearFree(m.verts);
-			lockedLinearFree(m.indices);
-		}
-		return false;
+		logf("npcdress: %s part %s read %llu ms, attach %llu ms", id.c_str(), part[s].c_str(), readMs,
+			osGetTime() - readStart - readMs);
 	}
 	// The library's torch and weapon stay; the rest goes
 	std::vector<ActorMesh> keep;
@@ -518,14 +575,38 @@ bool npcDress(World& w, LoadedCell& l, Actor& a, const ActorDef& d, const std::v
 		}
 	keep.insert(keep.end(), made.begin(), made.end());
 	a.meshes.swap(keep);
+	made.clear(); // ownership of the GPU buffers moved to the actor
 	a.skinned = false;
 	for (auto& m : a.meshes)
 		a.skinned |= m.kind == ACTOR_SKINNED;
 	a.deformed = false;
 	a.skinSerial = ~0u;
 	a.dressed = true;
-	logf("npcdress: %s dressed again, %d items on, %d meshes", d.id.c_str(), (int)items.size(), (int)a.meshes.size());
+	logf("npcdress: %s dressed again, %u items on, %d meshes, %u model reads across frames", id.c_str(), itemCount,
+		(int)a.meshes.size(), reads);
+	logf("npcdress: %s completed in %llu ms", id.c_str(), osGetTime() - started);
 	return true;
+}
+
+static u32 remainingWorn(const World& w, const Ref& r, const ActorDef& d, std::vector<std::string>& left)
+{
+	u32 mask = 0;
+	for (size_t k = 0; k < d.worn.size(); k++)
+	{
+		if (!w.game.firstPerson.third.items.count(d.worn[k].str()))
+		{
+			mask |= 1u << k;
+			continue;
+		}
+		for (const ContentItem& c : r.contents)
+			if (c.first != 0 && c.second == d.worn[k].view())
+			{
+				mask |= 1u << k;
+				left.push_back(c.second);
+				break;
+			}
+	}
+	return mask;
 }
 
 // NPCs wear what their library has on (the converter dressed them). Twice a second each loaded one is looked at: when
@@ -534,6 +615,44 @@ bool npcDress(World& w, LoadedCell& l, Actor& a, const ActorDef& d, const std::v
 // with the item still gone comes back dressed the same way
 void Session::updateDress(float dt)
 {
+	// Inventory edits are a transaction: build only the final outfit after the menu closes.
+	if (menuOpen())
+	{
+		dressJob.reset();
+		dressTimer = 0.0f;
+		return;
+	}
+	if (dressJob)
+	{
+		NpcDressJob& job = *dressJob;
+		LoadedCell* l = job.cell >= 0 && job.cell < (int)w.cells.size() ? w.cells[job.cell].live : nullptr;
+		Actor* a = job.ref >= 0 && job.ref < (int)w.refs.size() ? w.actorOf(job.ref) : nullptr;
+		if (!l || !a || a->skeleton != job.skeleton || w.placeOf(job.ref) != job.cell
+			|| w.cells[job.cell].lastUsed != job.cellStamp)
+		{
+			dressJob.reset();
+			return;
+		}
+		std::vector<std::string> left;
+		const Ref& r = w.refs[job.ref];
+		if (r.actor < 0 || remainingWorn(w, r, w.game.actors[r.actor], left) != job.mask)
+		{
+			dressJob.reset();
+			dressTimer = 0.15f;
+			return;
+		}
+		unsigned before = job.reads;
+		bool done = job.step(w, *l, *a);
+		dressPeakReads = std::max(dressPeakReads, job.reads - before);
+		if (done)
+		{
+			a->wornMask = job.mask;
+			if (job.failed)
+				logf("npcdress: %s kept as it was (a piece wouldn't load)", job.id.c_str());
+			dressJob.reset();
+		}
+		return;
+	}
 	if ((dressTimer -= dt) > 0.0f)
 		return;
 	dressTimer = 0.5f;
@@ -546,32 +665,29 @@ void Session::updateDress(float dt)
 			const ActorDef& d = w.game.actors[r.actor];
 			if (d.creature || d.worn.empty() || d.worn.size() > 32)
 				continue;
-			u32 mask = 0;
 			std::vector<std::string> left;
-			for (size_t k = 0; k < d.worn.size(); k++)
-			{
-				// (rings and amulets show nothing: one gone changes no part)
-				if (!w.game.firstPerson.third.items.count(d.worn[k].str()))
-				{
-					mask |= 1u << k;
-					continue;
-				}
-				for (const ContentItem& c : r.contents)
-					if (c.first != 0 && c.second == d.worn[k].view())
-					{
-						mask |= 1u << k;
-						left.push_back(c.second);
-						break;
-					}
-			}
+			u32 mask = remainingWorn(w, r, d, left);
 			u32 all = d.worn.size() == 32 ? ~0u : (1u << d.worn.size()) - 1;
 			if (a.wornMask == ~0u && mask == all && !a.dressed)
 				a.wornMask = mask;               // (as its library has it)
 			if (mask == a.wornMask)
 				continue;
-			a.wornMask = mask;
-			if (!npcDress(w, *l, a, d, left))
+			auto job = std::make_unique<NpcDressJob>();
+			job->cell = l->index;
+			job->cellStamp = w.cells[l->index].lastUsed;
+			job->mask = mask;
+			if (job->begin(w, a, d, left))
+			{
+			for (const auto& part : job->parts)
+				job->totalParts += !part.empty();
+				dressJob = std::move(job);
+				return;
+			}
+			else
+			{
+				a.wornMask = mask;
 				logf("npcdress: %s kept as it was (a piece wouldn't load)", d.id.c_str());
+			}
 		}
 }
 

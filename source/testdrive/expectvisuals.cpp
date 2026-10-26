@@ -233,6 +233,42 @@ std::optional<bool> numberOfWorld(Session& s, const std::string& what, const std
 		extern int g_torchPerPixel;
 		v = (float)g_torchPerPixel;
 	}
+	else if (what == "previewloading") v = s.previewPending ? 1.0f : 0.0f;
+	else if (what == "previewpeakreads") v = (float)std::max(s.body.previewPeakReads, s.previewBody.previewPeakReads);
+	else if (what == "previewerror") v = s.previewError ? 1.0f : 0.0f;
+	else if (what == "dresspending") v = s.dressJob ? 1.0f : 0.0f;
+	else if (what == "hudmaplocal") v = s.hudMapIsLocal() ? 1.0f : 0.0f;
+	else if (what == "statstab") v = s.statsTab;
+	else if (what == "statsskillgroup") v = s.statsSkillGroup;
+	else if (what == "statsrows") v = s.statsRowsShown;
+	else if (what == "statspages") v = s.statsPageCount;
+	else if (what == "statspage") v = s.statsTab == 2 ? s.statsSkillPage : s.statsFactionPage;
+	else if (what == "hudmapzoom") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].zoom();
+	else if (what == "hudmapfollow") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].follow ? 1.0f : 0.0f;
+	else if (what == "hudmapx") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].center[0];
+	else if (what == "hudmapy") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].center[1];
+	else if (what == "worldpaused") v = s.worldPaused() ? 1.0f : 0.0f;
+	else if (what == "worldtime") v = s.w.time;
+	else if (what == "dresspresented") v = s.dressJob && s.dressJob->presented ? 1.0f : 0.0f;
+	else if (what == "arrivalframes") v = s.arrivalFrames;
+	else if (what == "renderedeffects") v = s.hudEffectIcons;
+	else if (what == "arrivalmissing")
+	{
+		v = 0;
+		if (s.w.current >= 0 && !s.w.cells[s.w.current].interior)
+		{
+			const auto& c = s.w.cells[s.w.current];
+			for (int y = -1; y <= 1; y++)
+				for (int x = -1; x <= 1; x++)
+				{
+					int ci = s.w.gridCell(c.gx + x, c.gy + y);
+					v += ci >= 0 && !s.w.cells[ci].live;
+				}
+		}
+	}
+	else if (what == "dresspeakreads") v = (float)s.dressPeakReads;
+	else if (what == "bodypiecereads") v = (float)s.body.pieceReads;
+	else if (what == "vmpieces") v = (float)s.vm.pieces.size();
 	else if (what == "setting")     // <lookspeed|geturn|geaim|inverty|subtitles>: Controls > Look's and Display's, now
 	{
 		if (arg == "lookspeed") v = (float)g_lookSpeed;

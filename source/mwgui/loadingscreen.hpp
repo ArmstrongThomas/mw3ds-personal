@@ -22,7 +22,7 @@ extern std::vector<ArtRef> g_splashes;
 void clearTop(C3D_RenderTarget* target, u32 rgba);
 // A loading screen: a splash picture, the text, what is being read and for how long
 void drawLoading(C3D_RenderTarget* top, C3D_RenderTarget* bottom, const char* text, const char* detail = nullptr,
-	float seconds = -1.0f);
+	float seconds = -1.0f, unsigned done = 0, unsigned total = 0);
 
 // While it lives, each log line the main thread writes redraws the loading screen with it (a few times a second at
 // most); its end draws the last step and that the first frame comes next

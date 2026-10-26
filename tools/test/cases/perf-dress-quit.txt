@@ -1,0 +1,8 @@
+# start: Seyda Neen
+3 0 0 0 0 MSG
+60 0 0 0 0 UNTIL:refmeshes:fargoth:gt:0
+0.3 0 0 0 0 GOD:2+SLAY:fargoth
+1 0 0 0
+0.01 0 0 0 0 REFADDITEM:fargoth:common_shirt_04:-1
+5 0 0 0 0 UNTIL:dresspending:eq:1
+0.01 0 0 0 0 QUIT

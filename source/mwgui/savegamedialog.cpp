@@ -432,12 +432,7 @@ void Session::drawSaves()
 	}
 	else if (b == 0 && canSave)
 	{
-		std::string path = saveNewPath();
-		if (w.saveGame(path.c_str()))
-		{
-			notify("Game saved.");
-			addSaveToList(saveList);
-		}
+		pendingSave = saveNewPath();
 	}
 	else if ((b == 1 || (pick >= 0 && (uiIn().down & KEY_A))) && canLoad)
 	{
@@ -452,4 +447,13 @@ void Session::drawSaves()
 		else
 			closeScreen();
 	}
+}
+
+void Session::finishSave()
+{
+	bool ok = w.saveGame(pendingSave.c_str());
+	pendingSave.clear();
+	notify(ok ? "Game saved." : "Saving failed.");
+	if (ok)
+		addSaveToList(saveList);
 }

@@ -1,5 +1,8 @@
 # MW3DS: Morrowind for the 3DS
 
+**Personal fork:** start with [FORK.md](FORK.md), [HANDOFF.md](HANDOFF.md), and [DEVELOPMENT.md](DEVELOPMENT.md).
+Agents should also read the ignored `HANDOFF.local.md` on this PC.
+
 Play *The Elder Scrolls III: Morrowind* on a **Nintendo 3DS**. MW3DS is a from-scratch engine written in C++ for the 3DS.
 It runs the base game on real hardware and in the [Azahar](https://azahar-emu.org/) emulator.
 

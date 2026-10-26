@@ -28,3 +28,4 @@ void audioMusicPlay(const std::vector<std::string>& files, float volume, bool lo
 // Options: overall effects (sounds and voices) and music volume, 0..1
 void audioSetScales(float effects, float music);
 void audioUpdate();
+void audioLoadingUpdate();

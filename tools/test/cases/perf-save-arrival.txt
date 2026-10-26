@@ -1,0 +1,13 @@
+# start: Seyda Neen
+# Nearby cells finish behind the loading screen on a New 3DS, including a saved exterior arrival.
+3 0 0 0 0 MSG
+0.1 0 0 0 0 GOD:2
+0.1 0 0 0 0 EXPECT:arrivalmissing:eq:0
+0.3 0 0 0 0 SAVE:arrival_ready
+0.01 0 0 0 0 LOAD:arrival_ready
+0.01 0 0 0 0 EXPECT:arrivalframes:gt:0+SNAP:worldtime
+0.01 0 0 0
+0.01 0 0 0 0 EXPECT:worldtime:eq:@0
+3 0 0 0 0 UNTIL:arrivalframes:eq:0
+0.1 0 0 0 0 EXPECT:arrivalmissing:eq:0+EXPECT:worldpaused:eq:0+EXPECT:screen:none
+0.1 0 0 0 0 SHOT

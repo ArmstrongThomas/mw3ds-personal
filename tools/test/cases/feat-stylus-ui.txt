@@ -18,6 +18,12 @@
 0.3 0 0 0 0 EXPECT:setting:touchinvert:eq:1+EXPECT:savedsetting:touchinvert:eq:1
 0.3 0 0 0 0 TAP:230:157
 0.3 0 0 0 0 EXPECT:setting:touchleft:eq:1
+0.3 0 0 0 0 SCREEN:none
+0.3 0 0 0 0 TAP:258:58
+0.3 0 0 0 0 EXPECT:hudmaplocal:eq:1+EXPECT:screen:none
+0.3 0 0 0 0 TAP:258:58
+0.3 0 0 0 0 EXPECT:hudmaplocal:eq:0+EXPECT:screen:none
+0.3 0 0 0 0 SCREEN:touch
 0.3 0 0 0 0 SHOT
 0.3 0 0 0 0 TAP:160:222
 0.3 0 0 0 0 EXPECT:screen:controls
@@ -38,6 +44,14 @@
 0.1 0 0 0 0 TOUCH:120:90
 0.1 0 0 0 0 EXPECT:yaw:ge:@2.8+EXPECT:yaw:le:@2.9
 0.1 0 0 0 0 DT:0.0333333
+0.3 0 0 0 0 TAP:258:58
+0.3 0 0 0 0 EXPECT:hudmaplocal:eq:1+EXPECT:screen:none
+0.3 0 0 0 0 TAP:258:58
+0.3 0 0 0 0 EXPECT:hudmaplocal:eq:0+EXPECT:screen:none
+0.1 0 0 0 0 SNAP:yaw
+0.1 0 0 0 0 TOUCH:200:100
+0.1 0 0 0 0 TOUCH:220:100
+0.1 0 0 0 0 EXPECT:yaw:ge:@2.8+EXPECT:yaw:le:@2.9+EXPECT:screen:none
 0.1 0 0 0 0 TOUCH:120:90
 0.1 0 0 0 0 TOUCH:130:222
 0.1 0 0 0 0 TAP:130:222

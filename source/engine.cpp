@@ -22,6 +22,7 @@
 #include "components/debug/profile.hpp"
 #include "mwrender/renderingmanager.hpp"
 #include "platform/gamma.hpp"
+#include "platform/battery.hpp"
 #include "mwrender/screenshotmanager.hpp"
 #include "components/files/zfile.hpp"
 #include "platform/platform.hpp"
@@ -155,6 +156,7 @@ bool Engine::prepare()
 	logf("console: %s CPU, %s heap (%d objects, %u KB of sounds kept)", g_profile.slowCpu ? "slow" : "fast",
 		g_profile.smallHeap ? "small" : "large", g_profile.refBudget, g_profile.soundCacheBytes / 1024);
 	gammaInit();
+	batteryInit();
 	romfs = R_SUCCEEDED(romfsInit());
 	s_romfs = romfs;                   // (unmounted in userAppExit)
 	struct stat st;
@@ -266,6 +268,8 @@ bool Engine::prepare()
 		MARK("loading screen drawn");
 		loadStart = osGetTime();
 	}
+	if (g_splashes.empty())
+		loadStartupTheme(dataDir);
 	session->dataDir = dataDir;
 	{
 		LoadingProgress progress(top, bottom, "Loading...");
@@ -274,6 +278,7 @@ bool Engine::prepare()
 		{
 			logf("heap: session %d KB", mallinfo().uordblks / 1024);
 			session->vm.load(session->w);
+			session->prepareArrival();
 			logf("heap: + view model %d KB", mallinfo().uordblks / 1024);
 			uiLoadTheme(dataDir, session->w.game.ui);
 			logf("heap: + ui theme %d KB", mallinfo().uordblks / 1024);
@@ -332,6 +337,7 @@ bool Engine::retryFromTitle(bool& loadedOut)
 		if (loadedOut)
 		{
 			session->vm.load(session->w);
+			session->prepareArrival();
 			uiLoadTheme(dataDir, session->w.game.ui);
 			g_splashes = session->w.game.art.splash;
 		}
@@ -342,6 +348,8 @@ bool Engine::retryFromTitle(bool& loadedOut)
 // One pass of the loop: input, the scripted step, the update, both screens drawn; false: the loop ends
 bool Engine::frame()
 {
+	batteryUpdate();
+	audioLoadingUpdate();
 	hidScanInput();
 	irrstScanInput();
 	u32 down = hidKeysDown(), held = hidKeysHeld(), up = hidKeysUp();
@@ -349,6 +357,13 @@ bool Engine::frame()
 		return false;
 	if (loaded && session->wantQuit)
 		return false;
+	if (loaded && !session->pendingSave.empty())
+	{
+		LoadingProgress progress(top, bottom, "Saving...");
+		session->finishSave();
+		lastTick = svcGetSystemTick();
+		return true;
+	}
 
 	u64 now = svcGetSystemTick();
 	float dt = fminf((float)(now - lastTick) / SYSCLOCK_ARM11, 0.1f);
@@ -408,12 +423,14 @@ bool Engine::frame()
 	bool stylusGameplay = loaded && g_touchLook && !session->menuOpen() && !session->wantName
 		&& !session->wantText && !session->moviePlaying() && !session->playerDead && !(down & KEY_START);
 	{
-		if (touchLook.update(ui.touching, stylusGameplay, ui.touchX, ui.touchY))
+		if (touchLook.update(ui.touching, stylusGameplay, ui.touchX, ui.touchY, g_touchLeftHanded,
+			loaded ? session->hudEffectIcons : 0))
 		{
 			ui.touching = ui.tapped = false;
 			ui.dragDX = ui.dragDY = 0;
 		}
 		const float radiansPerPixel = 0.005f * g_touchSensitivity / 100.0f;
+		ui.mapDragging = ui.touching && touchLook.owner == TouchLook::MAP;
 		in.touchYaw = touchLook.dx * radiansPerPixel;
 		in.touchPitch = touchLook.dy * radiansPerPixel * (g_touchInvertY ? 1.0f : -1.0f);
 	}
@@ -430,7 +447,7 @@ bool Engine::frame()
 		}
 		in.sneak = in.sneak || touchSneakOn;
 		in.down = in.sneak;
-		if (ui.touching && TouchLook::actionAt(ui.touchX, ui.touchY) == 2)
+		if (ui.touching && touchLook.owner != TouchLook::MAP && TouchLook::actionAt(ui.touchX, ui.touchY) == 2)
 			in.up = true;
 	}
 	else if (!g_touchLook)
@@ -542,6 +559,7 @@ bool Engine::frame()
 			if (loaded)
 			{
 				session->vm.load(session->w);
+				session->prepareArrival();
 				uiLoadTheme(dataDir, session->w.game.ui);
 		g_splashes = session->w.game.art.splash;
 			}
@@ -814,7 +832,7 @@ bool Engine::frame()
 		g_uiDraws = 0;
 		if (loaded)
 		{
-			if (!g_hudOff)
+			if (!g_hudOff || session->dressJob || session->arrivalFrames || session->quitSaving > 0)
 				session->drawTop();
 			else
 				session->drawHurtFlash();
@@ -967,6 +985,7 @@ void Engine::shutdown()
 	distantFree();
 	exitStep("exit: gamma");
 	gammaExit();
+	batteryExit();
 	exitStep("exit: audio");
 	audioExit();
 	exitStep("exit: ui");

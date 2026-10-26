@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <array>
+#include <memory>
 
 #include "mwrender/animation.hpp"
 #include "mwrender/viewmodel.hpp"
@@ -32,7 +34,24 @@ struct BodyAct
 // its torch and weapon stay. Its textures join the cell's list. False (the library kept) when a piece couldn't load
 struct ActorDef;
 struct LoadedCell;
-bool npcDress(World& w, LoadedCell& l, Actor& a, const ActorDef& d, const std::vector<std::string>& items);
+struct NpcDressJob
+{
+	int ref = -1, cell = -1, skeleton = -1;
+	u32 mask = 0;
+	u32 cellStamp = 0;
+	unsigned nextSlot = 0, reads = 0, itemCount = 0;
+	unsigned totalParts = 0;
+	bool presented = false;
+	u64 started = 0;
+	bool failed = false;
+	std::string id;
+	std::array<std::string, 27> parts;
+	std::array<u32, 27> glow = {};
+	std::vector<ActorMesh> made;
+	~NpcDressJob();
+	bool begin(World& w, const Actor& a, const ActorDef& d, const std::vector<std::string>& items);
+	bool step(World& w, LoadedCell& l, Actor& a); // one model read; true when finished or failed
+};
 
 // The player seen from outside (third-person view, character creation's face preview): the NPC skeleton
 // of their race and sex, dressed from the "third" pieces (tools/convert/firstperson.py third_person): the bare
@@ -48,6 +67,10 @@ struct PlayerBody
 	std::string builtFor, forRace;
 	std::string weapon;                           // the piece on the weapon bone ("" when none is out)
 	bool forFemale = false;
+	bool previewLoading = false;
+	std::vector<std::string> previewFailed;
+	unsigned previewPeakReads = 0, pieceReads = 0;
+	u64 previewStarted = 0;
 	std::string group;                            // the walk / idle group asked for last ("" after a blow or cast)
 	BodyAction acting = BODY_NONE;                // the arms' action being played
 	std::string actGroup;
@@ -56,7 +79,7 @@ struct PlayerBody
 	bool stanceOut = false;                       // the walk / idle was chosen with the weapon out
 	bool swimOut = false;                         // ... and in the water (actorPlay's swimming groups)
 
-	void rebuild(World& w, bool weaponOut);      // (re)dress when race, head, hair or equipment changed
+	void rebuild(World& w, bool weaponOut, bool preview = false);
 	// Animation from what the player does; place at feet, facing yaw
 	void update(World& w, float dt, float speed, bool swimming, bool sneaking, bool weaponOut, const BodyAct& act);
 	const char* playing() const;                  // the group being played ("" when none)

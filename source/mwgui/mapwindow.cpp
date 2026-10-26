@@ -79,6 +79,11 @@ static bool interiorMapArea(const Cell& cell, float* minX, float* minY, float* s
 	return true;
 }
 
+bool Session::hudMapIsLocal() const
+{
+	return hudMapMode < 0 ? w.current >= 0 && w.cells[w.current].interior : hudMapMode != 0;
+}
+
 void Session::updateLocalMap()
 {
 	if (w.current < 0 || !w.cells[w.current].live)
@@ -110,7 +115,7 @@ void Session::updateLocalMap()
 	{
 		// Outdoors, only while the map screen shows it (a render costs a frame): a cell and a half round the
 		// player from above everything loaded, again once they walk a quarter cell from its middle
-		if (screen != SCR_MAP || !mapLocal)
+		if (!(screen == SCR_MAP && mapLocal) && !(screen == SCR_NONE && g_touchLook && hudMapIsLocal()))
 			return;
 		const float size = 12288.0f;
 		const float* p = w.player.feet;
@@ -326,7 +331,7 @@ bool Session::drawLocalFog(float ox, float oy, float picture)
 
 // full: the map screen (pannable, the unvisited cells dark, detail tiles when zoomed in, markers whose names show
 // under the finger); not full: the HUD's minimap, always round the player. local: the local map, else the world map
-void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool full, bool local)
+void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool full, bool local, bool interactive)
 {
 	C2D_Flush();
 	C3D_SetScissor(GPU_SCISSOR_NORMAL, (u32)(240 - (y + vh)), (u32)(320 - (x + vw)), (u32)(240 - y), (u32)(320 - x));
@@ -334,6 +339,8 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 	bool outside = w.current >= 0 && !w.cells[w.current].interior;
 	const UiInput& in = uiIn();
 	float ax = 0, ay = 0;
+	auto& mini = hudMapViews[local ? 1 : 0];
+	bool draggingMini = interactive && in.mapDragging && (in.dragDX || in.dragDY);
 	bool arrow = false;
 	// The markers in view: where, which (a ref / a label), the name it shows, its size, the square it's under
 	struct Marker { float sx, sy, size; int id; std::string name; };
@@ -346,6 +353,17 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 		auto mapY = [&](float wy) { return m.height - (wy - m.originY) / m.unitsPerPixel; };
 		// (indoors the world map opens on its middle: the player isn't on it)
 		float cx = outside ? mapX(w.player.feet[0]) : m.width / 2.0f, cy = outside ? mapY(w.player.feet[1]) : m.height / 2.0f;
+		if (interactive && (!mini.follow || draggingMini))
+		{
+			cx = mapX(mini.center[0]);
+			cy = mapY(mini.center[1]);
+		}
+		if (draggingMini)
+		{
+			cx -= in.dragDX / zoom;
+			cy -= in.dragDY / zoom;
+			mini.follow = false;
+		}
 		if (full)
 		{
 			if (!mapViewSet)
@@ -361,6 +379,11 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 		float halfW = vw / zoom / 2, halfH = vh / zoom / 2;
 		cx = halfW * 2 >= m.width ? m.width / 2.0f : fmaxf(halfW, fminf(cx, m.width - halfW));
 		cy = halfH * 2 >= m.height ? m.height / 2.0f : fmaxf(halfH, fminf(cy, m.height - halfH));
+		if (interactive)
+		{
+			mini.center[0] = m.originX + cx * m.unitsPerPixel;
+			mini.center[1] = m.originY + (m.height - cy) * m.unitsPerPixel;
+		}
 		if (full)
 		{
 			mapCX = cx;
@@ -496,6 +519,17 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 		float px = (w.player.feet[0] - localMin[0]) / localSize * texSize;
 		float py = (localMin[1] + localSize - w.player.feet[1]) / localSize * texSize;
 		float cx = px, cy = py;
+		if (interactive && (!mini.follow || draggingMini))
+		{
+			cx = (mini.center[0] - localMin[0]) / localSize * texSize;
+			cy = (localMin[1] + localSize - mini.center[1]) / localSize * texSize;
+		}
+		if (draggingMini && picture > fminf(vw, vh))
+		{
+			cx -= in.dragDX / s;
+			cy -= in.dragDY / s;
+			mini.follow = false;
+		}
 		if (full)
 		{
 			if (!mapViewSet)
@@ -511,6 +545,11 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 		float oy = picture <= vh ? y + (vh - picture) / 2.0f : fminf(y, fmaxf(y + vh - picture, y + vh / 2 - cy * s));
 		ox = roundf(ox);
 		oy = roundf(oy);
+		if (interactive)
+		{
+			mini.center[0] = localMin[0] + (x + vw / 2 - ox) / s / texSize * localSize;
+			mini.center[1] = localMin[1] + localSize - (y + vh / 2 - oy) / s / texSize * localSize;
+		}
 		if (full)
 		{
 			// (the view's centre as it ended up, kept on the picture)
@@ -578,7 +617,8 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 		uiTextCentered(x + vw / 2, y + vh / 2 - 8, 0.45f, col::textDim, outside && !local ? "No map" : "...");
 	// A marker's name on the map screen: tap it, and it stays until the next tap (a finger dragged on the map pans it)
 	int& pinned = local ? mapDoorTip : mapPlaceTip;
-	if (full && in.tapped && in.tapY >= y && in.tapY < y + vh && in.tapX >= x && in.tapX < x + vw)
+	if ((full || interactive) && in.tapped && in.tapY >= y && in.tapY < y + vh && in.tapX >= x && in.tapX < x + vw
+		&& !(interactive && in.tapX >= x + 48 && in.tapY >= 144))
 	{
 		int tapped = -1;
 		float best = 1e9f;
