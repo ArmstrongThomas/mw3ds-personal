@@ -88,9 +88,12 @@ its pieces. The equipped gear's first-person pieces are now read ahead and cache
 plus the weapon, shield, tool, ammo-in-bow piece and the ammo's in-flight model, are read when the equipment changes
 (a menu or the arrival's loading screen is normally up). Ready/draw then find them cached. The selected spell's cast,
 bolt, hit and area pieces (and the hand glow and OpenMW's fallbacks) are read when it is selected, before a cast can
-start; quick keys load them on the following frame. This moves reads out of combat; it does not make one faster, and a
+start; quick keys load them on the following frame. Every blood splat a blow can throw (all three models in all three
+blood textures) is read at startup and pinned from the VFX trimmer, so the first successful hit does not read one. This
+moves reads out of combat; it does not make one faster, and a
 piece can still be released when linear memory runs short. (`viewmodel.cpp preloadEquipped`,
-`effectmanager.cpp preloadCastVfx`, `character.cpp viewModelUpdate`, test `feat-preload-equipment`.)
+`effectmanager.cpp preloadCastVfx`, `character.cpp viewModelUpdate`, tests `feat-preload-equipment` and
+`feat-preload-blood`.)
 
 New 3DS XL feedback: combat is smooth with the preload. A quick switch to a weapon not yet cached still shows one load,
 then that weapon stays cached; long minimap marker names cover much of the screen but were accepted.

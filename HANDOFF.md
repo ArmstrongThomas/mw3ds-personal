@@ -38,19 +38,21 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 - A tapped minimap marker's name is drawn on the HUD's top layer, outside the 96 px minimap, so long names such as
   "Balmora, Guild of Fighters" are no longer clipped.
 - Combat equipment is read ahead: equipped gear's first-person pieces (weapon, shield, tool, ammo in the bow and in
-  flight) and the selected spell's cast/bolt/hit/area visuals are cached when the equipment or spell changes. Ready,
-  draw, shot and first cast no longer stop under "Updating equipment..." in normal play.
+  flight), the selected spell's cast/bolt/hit/area visuals, and every blood splat a hit can throw are cached when the
+  equipment or spell changes or at startup. Ready, draw, shot, first cast and the first successful hit no longer stop
+  under "Updating equipment..." in normal play; the blood pieces are pinned from the VFX trimmer.
 
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `9b5cf9acfd75b16a6471c56d999a47781bea257ed5c6c8c4f56cc1695178cf80`
-(2,385,372 bytes).
-Both native and devkitPro builds pass, and this revision was sent successfully over 3dslink on October 26. New 3DS XL
-hardware feedback: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one
-load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long
-names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. Audible loading music
-still needs a listening check.
+`mw3ds-personal.3dsx`. SHA-256: `d1c8fac6948af9639d00e21f55f3dc20c540aaf796214486bb0630e129c09799`
+(2,386,412 bytes).
+Both native and devkitPro builds pass, and this revision was sent over 3dslink on October 26. New 3DS XL feedback on the
+previous build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one load,
+then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long names
+span much of the screen but were accepted. The scrolled Stats lists were confirmed better. The blood-splat preload is in
+this build and its first-hit behavior is pending hardware confirmation. Audible loading music still needs a listening
+check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -59,6 +61,7 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 | `personal-stats-ui` | 31 | All tabs, scrolled Misc/Factions lists, empty/populated factions, L/R/B |
 | `perf-stylus-map-markers` | 12 | Tap Balmora and its long Guild name; label drawn outside the minimap |
 | `feat-preload-equipment` | 4 | Bow and arrows cached at equip; ready adds no piece reads |
+| `feat-preload-blood` | 3 | All blood splats cached before the first hit; the hit adds no piece reads |
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |
@@ -66,8 +69,8 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 Logs: `build/*-tribunal-native.log`, `build/*-tribunal-emu.log`; captures: `build/shots/tribunal/`.
 Character, Attributes, the scrolled Misc skills list, empty Factions, and populated/scrolled Factions renders were
 inspected. Earlier navigation, marker, shrine tooltip, worn-effect, save, shutdown, and Old 3DS compatibility results
-are in the performance spec. The stats, marker-name and equipment-preload rows were rerun on both the native build and
-the isolated Azahar copy for this revision; the emulator still has no DSP firmware.
+are in the performance spec. The stats, marker-name, equipment-preload and blood-preload rows were rerun on both the
+native build and the isolated Azahar copy for this revision; the emulator still has no DSP firmware.
 
 ## Outstanding checks and limits
 

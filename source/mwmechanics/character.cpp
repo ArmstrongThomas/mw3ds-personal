@@ -295,6 +295,8 @@ void Session::viewModelUpdate(const PlayerInput& in, float dt)
 		// (read the equipped weapon, shield, tool and ammo ahead of time: readying or the first shot otherwise stops the
 		// game to load them. A menu or the arrival's loading screen is up when this first has anything to do)
 		vm.preloadEquipped(w);
+		// (the blood splats a hit throws, once, so the first successful blow does not read one)
+		vm.preloadBlood(w);
 	}
 	// The selected spell's visuals, read when it is chosen rather than when it is first cast (a quick key changes it in
 	// play, the next frame reads them before a cast can start)

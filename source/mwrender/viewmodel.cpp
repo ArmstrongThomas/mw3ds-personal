@@ -50,6 +50,7 @@ void ViewModel::free(World& w)
 	for (auto& p : pieces)
 		fpFreePiece(w, p.second);
 	pieces.clear();
+	pinned.clear();
 	failedAt.clear();
 	if (!set.actors.empty())
 		set.actors[0].meshes.clear();
@@ -425,6 +426,27 @@ void ViewModel::preloadEquipped(World& w)
 	}
 	if (pieces.size() != before)
 		logf("preload: equipment %d pieces (%d new) in %d ms, linear free %lu KB", (int)pieces.size(),
+			(int)(pieces.size() - before), (int)(osGetTime() - t0), (unsigned long)(linearSpaceFree() / 1024));
+}
+
+// The blood splat of a blow: Morrowind.ini's three models (the first is the plain "blood<texture>", the other two
+// "blood<texture>_<model>") in each blood's texture. damageNpc picks one on a hit; read them all now, and keep them from
+// the VFX trimmer, so the first successful blow does not stop under "Updating equipment..." for a splat.
+void ViewModel::preloadBlood(World& w)
+{
+	if (!ready)
+		return;
+	static const char* names[] = { "blood0", "blood0_1", "blood0_2", "blood1", "blood1_1", "blood1_2",
+		"blood2", "blood2_1", "blood2_2" };
+	size_t before = pieces.size();
+	u64 t0 = osGetTime();
+	for (const char* name : names)
+	{
+		pinned.insert(name);
+		piece(w, name);
+	}
+	if (pieces.size() != before)
+		logf("preload: blood splats %d pieces (%d new) in %d ms, linear free %lu KB", (int)pieces.size(),
 			(int)(pieces.size() - before), (int)(osGetTime() - t0), (unsigned long)(linearSpaceFree() / 1024));
 }
 

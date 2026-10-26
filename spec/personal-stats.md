@@ -31,9 +31,9 @@ DSP firmware; a hardware listening check is required.
 ## Verification
 
 Native tests with the locally available Tribunal conversion pass stats UI (31 expectations), minimap navigation
-(30), map marker names (12), equipment preload (4), corpse pause/rebuild (14), and protected save arrivals (6). Native
-Character, Attributes, the scrolled Misc skills list, empty Factions, and populated/scrolled Factions renders were
-inspected at 320x240.
+(30), map marker names (12), equipment preload (4), blood preload (3), corpse pause/rebuild (14), and protected save
+arrivals (6). Native Character, Attributes, the scrolled Misc skills list, empty Factions, and populated/scrolled
+Factions renders were inspected at 320x240.
 
 UI delivery gates: Hard Gate PASS (working touch/controller tabs and scrolling, values remain in bounds, no fake
 stats); Purpose Gate PASS (organized character information using existing game typography, palette, and framing);
@@ -41,6 +41,6 @@ Liveliness PASS (Morrowind direction, ENERGY 1 / RHYTHM 1 / MOTION 1); Craftsman
 functional checks, and inspected renders. Emulator results are recorded separately in `build/*-tribunal-emu.log`.
 
 The same Tribunal cases also pass on the actual 3DS executable in the personal checkout's isolated Azahar copy:
-stats (31), map marker names (12), equipment preload (4), minimap navigation (30), corpse rebuilding (14), and save
-arrivals (6). These are not audible-music tests. New 3DS XL feedback: the scrolled Stats lists are better; long minimap
-names persist across taps and maps (very long ones cover much of the screen, accepted).
+stats (31), map marker names (12), equipment preload (4), blood preload (3), minimap navigation (30), corpse rebuilding
+(14), and save arrivals (6). These are not audible-music tests. New 3DS XL feedback: the scrolled Stats lists are
+better; long minimap names persist across taps and maps (very long ones cover much of the screen, accepted).

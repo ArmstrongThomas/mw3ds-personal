@@ -1,0 +1,14 @@
+# start: Seyda Neen
+# A successful blow's blood splat is read ahead too: all of Morrowind.ini's three blood models, in all three blood
+# textures, are cached before the fight, so the first hit adds no piece read (and no "Updating equipment..." stop).
+3 0 0 0 0 MSG
+0.3 0 0 0 0 GOD
+0.3 0 0 0 0 GIVE:chitin%dagger
+0.3 0 0 0 0 EQUIP:chitin%dagger
+0.3 0 0 0 0 PLACE:ogrim:120
+1 0 0 0
+0.3 0 0 0 0 FACE:ogrim+EXPECT:bloodhits:eq:0
+0.3 0 0 0 0 SNAP:vmpieces
+0.3 0 0 0 0 HIT:ogrim
+0.5 0 0 0 0
+0.3 0 0 0 0 EXPECT:bloodhits:ge:1+EXPECT:vmpieces:eq:@0

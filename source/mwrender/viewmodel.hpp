@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "mwrender/animation.hpp"
@@ -49,6 +50,7 @@ struct ViewModel
 	ActorSet set;                             // skeletons[0]: the first-person skeleton; actors[0]: the arms
 	std::vector<C3D_Tex*> textures;           // indexed by the arm meshes' tex
 	std::unordered_map<std::string, FpPiece*> pieces;
+	std::unordered_set<std::string> pinned;   // pieces the VFX trimmer must keep (the blood splats a hit needs)
 	std::string builtFor;                     // equipment key the meshes were put together for
 	std::string inputsFor;                    // what that key was worked out from (race, sex, in hand, worn)
 	bool incomplete = false;                  // a piece or texture was short when it was built: tried again
@@ -68,6 +70,9 @@ struct ViewModel
 	// Loads the first-person pieces of everything the player has equipped (weapon, shield, ammo, tool, armour) now, while
 	// a menu or loading screen is up, so readying, drawing or shooting does not read them mid-combat. Cached like piece().
 	void preloadEquipped(World& w);
+	// Reads every blood splat a hit can throw (Morrowind.ini's three models, red / skeleton / dwemer) and keeps them from
+	// the VFX trimmer: the first successful blow otherwise stops under "Updating equipment..." to read one.
+	void preloadBlood(World& w);
 	// Puts the arms together for the race and equipment (cheap when nothing changed)
 	// ammoId: the arrow or bolt sitting in the bow or crossbow ("" none)
 	void rebuild(World& w, const std::string& weaponId, const std::string& shieldId, const std::string& ammoId = "");

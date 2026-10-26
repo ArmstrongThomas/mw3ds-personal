@@ -33,7 +33,7 @@ void Session::trimVfxPieces()
 		if (kv.second && fx.count(kv.first))
 		{
 			kept++;
-			if (!used.count(kv.first))
+			if (!used.count(kv.first) && !vm.pinned.count(kv.first))
 				idle.push_back(kv.first);
 		}
 	int freed = 0;
