@@ -10,8 +10,10 @@ struct WindowManagerState
 	DevConsole console;              // the in-game console (Options): its output, history and selected object
 	Dialogue dlg;
 	Screen screen = SCR_NONE;
-	int statsTab = 0, statsSkillGroup = 0, statsSkillPage = 0, statsFactionPage = 0;
-	int statsRowsShown = 0, statsPageCount = 1;
+	int statsTab = 0, statsSkillGroup = 0;
+	int statsRowsShown = 0;
+	UiScroll statsSkillScroll, statsFactionScroll;   // the skills / factions lists scroll (drag, C-stick or D-pad)
+	std::string preloadedSpell;      // the selected spell whose cast / bolt / hit / area visuals were read ahead
 	std::vector<MessageState> messages;
 	std::vector<ScriptMenu> pendingMenus;
 	bool wantName = false;            // main loop shows the system keyboard between frames
@@ -24,6 +26,9 @@ struct WindowManagerState
 	int enemyRef = -1;                // last NPC hit: its health bar shows on the top screen
 	int viewMode = VIEW_AUTO;         // Options > Video > View distance: the console's shortest, middle or longest, or auto (view=)
 	std::string hudCaption;           // the cell name the HUD wrote under the minimap last
+	bool hudMapTipOn = false;         // a marker's name is pinned on the HUD minimap: draw it at the HUD's top layer
+	std::string hudMapTipName;
+	float hudMapTipX = 0.0f, hudMapTipY = 0.0f;
 	bool hidden = false;              // sneaking and no one nearby has noticed
 	float previewSpin = 0.0f;         // the race menu's face turned this far (radians) by the C-stick
 	// repairing: -1 = with a repair tool (inventory index repairTool), else the smith's ref

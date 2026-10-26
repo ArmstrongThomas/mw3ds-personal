@@ -395,6 +395,8 @@ void Session::drawHud()
 	else
 		drawStandardHud();
 	drawHudMenus();
+	// The pinned minimap marker's name goes over everything else on the HUD (it is wider than the 96 px minimap)
+	drawHudMapTip();
 }
 
 void Session::drawStandardHud()

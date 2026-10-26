@@ -143,6 +143,61 @@ void Session::castVfx(const SpellDef& sp, int caster)
 	}
 }
 
+// Reads every piece a spell's cast, bolt, hit and area visuals may use (an enchanted item's spell when id is
+// "item:<id>"), plus the hand glow and OpenMW's fallbacks, so the first cast does not stop under "Updating equipment..."
+// while it reads them. A menu or the arrival screen is up when this normally runs; later calls only look in the cache.
+void Session::preloadCastVfx(const std::string& id)
+{
+	if (id.empty())
+		return;
+	const SpellDef* sp = nullptr;
+	if (id.compare(0, 5, "item:") == 0)
+	{
+		std::string itemId = id.substr(5);
+		for (auto& it : w.inventory)
+			if (it.id == itemId)
+			{
+				sp = w.enchantmentOf(it);
+				break;
+			}
+	}
+	else
+	{
+		auto it = w.game.spells.find(id);
+		if (it != w.game.spells.end())
+			sp = &it->second;
+	}
+	if (!sp)
+		return;
+	std::vector<std::string> names;
+	auto add = [&](const std::string& staticId) {
+		auto it = w.game.firstPerson.vfx.find(lower(staticId));
+		if (it != w.game.firstPerson.vfx.end() && std::find(names.begin(), names.end(), it->second) == names.end())
+			names.push_back(it->second);
+	};
+	for (const char* fallback : { "vfx_hands", "vfx_defaultcast", "vfx_defaulthit", "vfx_defaultarea", "vfx_defaultbolt" })
+		add(fallback);
+	for (auto& e : sp->effects)
+	{
+		auto me = w.game.magicEffects.find(e.effect);
+		if (me == w.game.magicEffects.end())
+			continue;
+		const auto& m = me->second;
+		add(m.cvfx.empty() ? "vfx_defaultcast" : m.cvfx);
+		add(m.hvfx.empty() ? "vfx_defaulthit" : m.hvfx);
+		add(m.avfx.empty() ? "vfx_defaultarea" : m.avfx);
+		add(m.bvfx.empty() ? "vfx_defaultbolt" : m.bvfx);
+	}
+	size_t before = vm.pieces.size();
+	u64 t0 = osGetTime();
+	for (auto& name : names)
+		vm.piece(w, name);
+	if (vm.pieces.size() != before)
+		logf("preload: cast visuals for %s, %d pieces (%d new) in %d ms, linear free %lu KB", id.c_str(),
+			(int)vm.pieces.size(), (int)(vm.pieces.size() - before), (int)(osGetTime() - t0),
+			(unsigned long)(linearSpaceFree() / 1024));
+}
+
 // Where a bone of a visual's actor is now: the player's body (third person) for -1, else the actor of that ref; false
 // when it has no such bone or isn't posed
 bool Session::vfxBonePos(int follow, const std::string& bone, float out[3])

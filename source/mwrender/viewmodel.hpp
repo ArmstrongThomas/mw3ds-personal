@@ -65,6 +65,9 @@ struct ViewModel
 	bool load(World& w);
 	void free(World& w);
 	FpPiece* piece(World& w, const std::string& name);    // cached; nullptr when missing (or short of memory: retried)
+	// Loads the first-person pieces of everything the player has equipped (weapon, shield, ammo, tool, armour) now, while
+	// a menu or loading screen is up, so readying, drawing or shooting does not read them mid-combat. Cached like piece().
+	void preloadEquipped(World& w);
 	// Puts the arms together for the race and equipment (cheap when nothing changed)
 	// ammoId: the arrow or bolt sitting in the bow or crossbow ("" none)
 	void rebuild(World& w, const std::string& weaponId, const std::string& shieldId, const std::string& ammoId = "");

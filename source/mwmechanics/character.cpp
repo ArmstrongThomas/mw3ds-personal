@@ -289,8 +289,20 @@ void Session::viewModelUpdate(const PlayerInput& in, float dt)
 	}
 	// The face preview doesn't draw first-person arms. Build them once for the accepted choice on leaving it.
 	if (screen != SCR_RACE)
+	{
 		vm.rebuild(w, show && !casting ? (wpn ? wpn->id.str() : toolItem ? toolItem->id : "") : "", show && !casting && oneHanded ? shield : "",
 			ammoIn);
+		// (read the equipped weapon, shield, tool and ammo ahead of time: readying or the first shot otherwise stops the
+		// game to load them. A menu or the arrival's loading screen is up when this first has anything to do)
+		vm.preloadEquipped(w);
+	}
+	// The selected spell's visuals, read when it is chosen rather than when it is first cast (a quick key changes it in
+	// play, the next frame reads them before a cast can start)
+	if (w.stats.selectedSpell != preloadedSpell)
+	{
+		preloadedSpell = w.stats.selectedSpell;
+		preloadCastVfx(preloadedSpell);
+	}
 	if (weaponDrawn && w.player.knockTimer > 0.0f && vm.action != VM_KNOCKDOWN)
 		vm.play(VM_KNOCKDOWN, "KnockDown");
 	if (blockUntil > w.time && vm.action == VM_IDLE && !shield.empty())

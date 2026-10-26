@@ -1,0 +1,16 @@
+# start: Seyda Neen
+# Ready, draw and shoot use pieces the equipment read ahead of time: the pieces appear in the cache as the gear is
+# equipped (a menu or loading screen), not on the first X (ready) or shot.
+3 0 0 0 0 MSG
+0.3 0 0 0 0 GOD:2
+0.3 0 0 0 0 SNAP:vmpieces
+0.3 0 0 0 0 GIVE:long%bow
+0.3 0 0 0 0 EXPECT:vmpieces:gt:@0
+0.3 0 0 0 0 SNAP:vmpieces
+0.3 0 0 0 0 GIVE:iron%arrow:20
+0.3 0 0 0 0 EXPECT:vmpieces:gt:@0
+0.3 0 0 0 0 SNAP:vmpieces
+0.3 0 0 0 0 EQUIP:long%bow
+0.3 0 0 0 0 EQUIP:iron%arrow
+1.5 0 0 0 0 X
+0.3 0 0 0 0 EXPECT:weapondrawn:eq:1+EXPECT:vmpieces:eq:@0

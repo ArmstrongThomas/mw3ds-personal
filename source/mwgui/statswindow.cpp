@@ -93,24 +93,33 @@ void Session::drawStats()
 		if (uiButton(4 + i * 79, 24, 75, 24, tabs[i], statsTab == i)) statsTab = i;
 	if (statsTab != previousTab)
 	{
-		statsSkillPage = statsFactionPage = 0;
+		statsSkillScroll = statsFactionScroll = UiScroll();
 		playSound(-1, "Menu Click");
 	}
 	uiPanel(4, 52, 312, 152);
 	statsRowsShown = 0;
-	statsPageCount = 1;
 	auto fact = [&](float y, const std::string& label, const std::string& value) {
 		uiText(12, y, 0.42f, col::textDim, label);
 		uiText(100, y, 0.45f, col::header, statsFit(value, 204, 0.45f));
 	};
-	auto pager = [&](int& page, int count, int perPage) {
-		statsPageCount = std::max(1, (count + perPage - 1) / perPage);
-		if (in.down & KEY_UP) page--;
-		if (in.down & KEY_DOWN) page++;
-		page = std::max(0, std::min(page, statsPageCount - 1));
-		if (uiButton(8, 180, 64, 22, "Prev", false, page > 0)) page--;
-		if (uiButton(248, 180, 64, 22, "Next", false, page + 1 < statsPageCount)) page++;
-		uiTextCentered(160, 185, 0.42f, col::textDim, std::to_string(page + 1) + " / " + std::to_string(statsPageCount));
+	// The lists (Skills, Factions) are taller than the window: drag one, use the C-stick, or step it a row with Up/Down.
+	const float listTop = 78.0f, listBottom = 198.0f;
+	auto scrollList = [&](UiScroll& sc, int count, float rowH) {
+		float h = listBottom - listTop, content = count * rowH;
+		if (in.down & KEY_UP) sc.scroll -= rowH;
+		if (in.down & KEY_DOWN) sc.scroll += rowH;
+		if (in.touching && in.touchX >= 8 && in.touchX < 312 && in.touchY >= listTop && in.touchY < listBottom)
+			sc.scroll -= in.dragDY;
+		sc.scroll += uiStickScroll();
+		sc.scroll = fmaxf(0.0f, fminf(sc.scroll, fmaxf(0.0f, content - h)));
+	};
+	auto beginRows = [&]() {
+		C2D_Flush();
+		C3D_SetScissor(GPU_SCISSOR_NORMAL, (u32)(240 - listBottom), (u32)(320 - 312), (u32)(240 - listTop), (u32)(320 - 8));
+	};
+	auto endRows = [&]() {
+		C2D_Flush();
+		C3D_SetScissor(GPU_SCISSOR_DISABLE, 0, 0, 0, 0);
 	};
 	if (statsTab == 0)
 	{
@@ -154,12 +163,12 @@ void Session::drawStats()
 	}
 	else if (statsTab == 2)
 	{
-		if (in.down & KEY_LEFT) { statsSkillGroup = (statsSkillGroup + 2) % 3; statsSkillPage = 0; }
-		if (in.down & KEY_RIGHT) { statsSkillGroup = (statsSkillGroup + 1) % 3; statsSkillPage = 0; }
+		if (in.down & KEY_LEFT) { statsSkillGroup = (statsSkillGroup + 2) % 3; statsSkillScroll = UiScroll(); }
+		if (in.down & KEY_RIGHT) { statsSkillGroup = (statsSkillGroup + 1) % 3; statsSkillScroll = UiScroll(); }
 		const char* groups[] = { "Major", "Minor", "Misc" };
 		for (int i = 0; i < 3; i++)
 			if (uiButton(8 + i * 104, 55, 96, 20, groups[i], statsSkillGroup == i) && statsSkillGroup != i)
-			{ statsSkillGroup = i; statsSkillPage = 0; }
+			{ statsSkillGroup = i; statsSkillScroll = UiScroll(); }
 		std::vector<int> skills;
 		auto contains = [](const int* a, int k) { return std::find(a, a + 5, k) != a + 5; };
 		for (int k = 0; k < 27; k++)
@@ -168,18 +177,22 @@ void Session::drawStats()
 			if ((statsSkillGroup == 0 && major) || (statsSkillGroup == 1 && minor)
 				|| (statsSkillGroup == 2 && !major && !minor)) skills.push_back(k);
 		}
-		pager(statsSkillPage, skills.size(), 5);
-		for (int row = 0, n = statsSkillPage * 5; n < (int)skills.size() && row < 5; n++, row++)
+		scrollList(statsSkillScroll, skills.size(), 20.0f);
+		beginRows();
+		for (int i = 0; i < (int)skills.size(); i++)
 		{
-			int k = skills[n];
-			float y = 78 + row * 20;
-			if (row % 2 == 0) uiRect(8, y, 304, 20, col::panelLight);
+			float y = listTop + i * 20.0f - statsSkillScroll.scroll;
+			if (y + 20.0f <= listTop || y >= listBottom)
+				continue;
+			int k = skills[i];
+			if (i % 2 == 0) uiRect(8, y, 304, 20, col::panelLight);
 			uiText(12, y, 0.45f, col::text, statsFit(skillName(w, k), 185, 0.45f));
 			uiTextRight(306, y, 0.45f, col::header, std::to_string(s.skills[k]));
 			float need = skillNeed(k);
 			uiBar(204, y + 14, 102, 4, s.skills[k] >= 100 ? 1.0f : need > 0 ? s.skillProgress[k] / need : 0.0f, col::header);
 			statsRowsShown++;
 		}
+		endRows();
 		if (skills.empty()) uiTextCentered(160, 112, 0.45f, col::textDim, "No skills in this group.");
 	}
 	else
@@ -191,12 +204,15 @@ void Session::drawStats()
 		std::sort(factions.begin(), factions.end(), [&](const std::string& a, const std::string& b) {
 			return lower(g.factionName(a)) < lower(g.factionName(b));
 		});
-		pager(statsFactionPage, factions.size(), 4);
-		for (int row = 0, n = statsFactionPage * 4; n < (int)factions.size() && row < 4; n++, row++)
+		scrollList(statsFactionScroll, factions.size(), 25.0f);
+		beginRows();
+		for (int i = 0; i < (int)factions.size(); i++)
 		{
-			const auto& id = factions[n];
-			float y = 78 + row * 25;
-			if (row % 2 == 0) uiRect(8, y, 304, 24, col::panelLight);
+			float y = listTop + i * 25.0f - statsFactionScroll.scroll;
+			if (y + 25.0f <= listTop || y >= listBottom)
+				continue;
+			const auto& id = factions[i];
+			if (i % 2 == 0) uiRect(8, y, 304, 24, col::panelLight);
 			bool expelled = w.pcExpelled.count(id);
 			uiText(12, y, 0.44f, expelled ? col::health : col::header, statsFit(g.factionName(id), 212, 0.44f));
 			auto rep = w.pcFacRep.find(id);
@@ -205,6 +221,7 @@ void Session::drawStats()
 			uiText(12, y + 12, 0.38f, col::text, statsFit(rank, 292, 0.38f));
 			statsRowsShown++;
 		}
+		endRows();
 		if (factions.empty()) uiTextCentered(160, 110, 0.45f, col::textDim, "No faction memberships.");
 	}
 	if (buttonRow({ g.gmst("sclose", "Close") }, focus) == 0 || (in.down & KEY_B)) closeScreen();

@@ -384,6 +384,50 @@ FpPiece* fpLoadPiece(World& w, const Skeleton& sk, const std::string& name, bool
 static const int kSlots[] = { 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 25 };
 static const int CLOT_ROBE = 4, CLOT_SKIRT = 7;
 
+// Loads the pieces the first-person arms will need for the current equipment, whether or not the weapon is drawn yet:
+// readying a weapon, drawing a bow or attaching its arrow otherwise reads the piece then, and the read stops the game
+// under "Updating equipment...". Meant for a menu (paused) or the arrival's loading screen; a later call only looks in
+// the cache. The ammo piece and its in-flight model are loaded too, so the first shot does not read them.
+void ViewModel::preloadEquipped(World& w)
+{
+	if (!ready)
+		return;
+	const FirstPersonDef& fp = w.game.firstPerson;
+	bool female = w.stats.female;
+	size_t before = pieces.size();
+	u64 t0 = osGetTime();
+	for (auto& it : w.inventory)
+	{
+		if (!it.equipped)
+			continue;
+		auto fit = fp.items.find(lower(it.id));
+		if (fit == fp.items.end())
+			continue;
+		for (auto& s : fit->second.slots)
+		{
+			bool wanted = false;
+			for (int k : kSlots)
+				wanted |= s.first == k;
+			if (!wanted)
+				continue;
+			// (the model an item names without a piece still covers that slot: the bare wrist under a gauntlet)
+			const std::string& name = female && !s.second.second.empty() ? s.second.second : s.second.first;
+			if (!name.empty())
+				piece(w, name);
+		}
+		// Arrows and bolts: the piece that sits in the bow and the one that flies (FpItem::ammo / model)
+		if (!fit->second.ammo.empty())
+		{
+			piece(w, fit->second.ammo);
+			if (!fit->second.model.empty())
+				piece(w, fit->second.model);
+		}
+	}
+	if (pieces.size() != before)
+		logf("preload: equipment %d pieces (%d new) in %d ms, linear free %lu KB", (int)pieces.size(),
+			(int)(pieces.size() - before), (int)(osGetTime() - t0), (unsigned long)(linearSpaceFree() / 1024));
+}
+
 void ViewModel::rebuild(World& w, const std::string& weaponId, const std::string& shieldId, const std::string& ammoId)
 {
 	if (!ready)

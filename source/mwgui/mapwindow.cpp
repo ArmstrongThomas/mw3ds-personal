@@ -231,12 +231,22 @@ static void drawNoteMarker(float cx, float cy, bool lit)
 	uiRect(x + 1, y + 1, 6, 6, lit ? C2D_Color32(255, 90, 60, 255) : C2D_Color32(200, 40, 30, 255));
 }
 
-// A marker's name in a framed box above it (below when there's no room), kept inside the view
-static void drawMapTip(const std::string& name, float mx, float my, float x, float y, float vw)
+// A marker's name in a framed box near it, kept inside [left, right] x [top, bottom]: the map screen's view, or for the
+// HUD's minimap the whole screen (the box may stand over the HUD around the minimap instead of being cut at its edge)
+float g_mapTipBox[4] = {};       // test hooks: where the last name was drawn, and whether one was
+int g_mapTipDrawn = 0;
+
+static void drawMapTip(const std::string& name, float mx, float my, float left, float top, float right, float bottom)
 {
 	float tw = uiTextWidth(name, 0.45f), lh = uiLineHeight(0.45f);
-	float lx = fminf(fmaxf(mx - tw / 2 - 3, x + 2), x + vw - tw - 8);
-	float ly = my - 8 - lh - 4 < y + 2 ? my + 8 : my - 8 - lh - 4;
+	float lx = fminf(fmaxf(mx - tw / 2 - 3, left + 2), right - tw - 8);
+	float ly = my - 8 - lh - 4 < top + 2 ? my + 8 : my - 8 - lh - 4;
+	ly = fmaxf(fminf(ly, bottom - lh - 4), top + 2);
+	g_mapTipBox[0] = lx;
+	g_mapTipBox[1] = ly;
+	g_mapTipBox[2] = tw + 6;
+	g_mapTipBox[3] = lh + 4;
+	g_mapTipDrawn = 1;
 	uiRect(lx, ly, tw + 6, lh + 4, C2D_Color32(0, 0, 0, 200));
 	uiFrame(lx, ly, tw + 6, lh + 4);
 	uiText(lx + 3, ly + 2, 0.45f, col::header, name);
@@ -335,6 +345,9 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 {
 	C2D_Flush();
 	C3D_SetScissor(GPU_SCISSOR_NORMAL, (u32)(240 - (y + vh)), (u32)(320 - (x + vw)), (u32)(240 - y), (u32)(320 - x));
+	g_mapTipDrawn = 0;
+	if (!full)
+		hudMapTipOn = false;
 	uiRect(x, y, vw, vh, C2D_Color32(12, 9, 6, 255));
 	bool outside = w.current >= 0 && !w.cells[w.current].interior;
 	const UiInput& in = uiIn();
@@ -655,12 +668,36 @@ void Session::drawMapView(float x, float y, float vw, float vh, float zoom, bool
 			}
 	if (arrow)
 		drawPlayerArrow(ax, ay, w.player.yaw);
+	const Marker* tip = nullptr;
 	for (auto& mk : markers)
 		if (mk.id == pinned)
-			drawMapTip(mk.name, mk.sx, mk.sy, x, y, vw);
+			tip = &mk;
 	C2D_Flush();
 	C3D_SetScissor(GPU_SCISSOR_DISABLE, 0, 0, 0, 0);
 	uiFrame(x, y, vw, vh);
+	// The map screen's name is drawn here, over its own frame. The HUD minimap is only 96 wide, so its name is kept
+	// until the HUD's top layer (drawHudMapTip): drawn here, the look pad and its labels would paint over it.
+	if (tip)
+	{
+		if (full)
+			drawMapTip(tip->name, tip->sx, tip->sy, x + 2, y + 2, x + vw - 2, y + vh - 2);
+		else
+		{
+			hudMapTipOn = true;
+			hudMapTipName = tip->name;
+			hudMapTipX = tip->sx;
+			hudMapTipY = tip->sy;
+		}
+	}
+	C2D_Flush();
+}
+
+void Session::drawHudMapTip()
+{
+	if (!hudMapTipOn)
+		return;
+	drawMapTip(hudMapTipName, hudMapTipX, hudMapTipY, 2, 2, 318, 238);
+	C2D_Flush();
 }
 
 void Session::drawMap()

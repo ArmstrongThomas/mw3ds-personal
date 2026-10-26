@@ -67,6 +67,7 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	void updateLocalMap();            // inside a frame, before the screens are drawn
 	bool ensureMapTexture();
 	void drawMapView(float x, float y, float vw, float vh, float zoom, bool full, bool local, bool interactive = false);
+	void drawHudMapTip();             // the pinned HUD minimap marker's name, over the HUD's other layers
 	bool ended = false;
 	bool autotest = false;
 	bool kitV2() const { return testKit >= 2 || w.itemCount("uber_ring") > 0; }   // (also a run resumed from a v2 checkpoint)
@@ -115,6 +116,8 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	// area in feet: OpenMW's explodeSpell); range: the effects kind 2 bursts. An effect with none: the VFX_Default one
 	void spellVfx(const SpellDef& sp, int kind, const float pos[3], int follow = -2, float yaw = 0.0f, int range = 2);
 	void castVfx(const SpellDef& sp, int caster);  // the cast's visual on its caster (-1 the player), as long as it casts
+	// Reads the visuals a spell (or an enchanted item's, "item:<id>") can show, so its first cast does not stop to load them
+	void preloadCastVfx(const std::string& id);
 	std::string boltPiece(const SpellDef& sp, int* effect = nullptr);   // what a bolt of it flies as ("" none: a glow), for which effect
 	C3D_Tex* fxTexture(const ActorMesh& m, C3D_Tex* own, int effect);  // a visual's mesh texture: an fx shape the effect's own
 	C3D_Tex* skyTex(const std::string& name);      // acquired once, kept

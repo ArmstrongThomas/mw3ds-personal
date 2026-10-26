@@ -183,6 +183,8 @@ void Session::openScreen(Screen s)
 	list2 = UiList();
 	grid = UiGrid();
 	scroll = UiScroll();
+	if (s == SCR_STATS)
+		statsSkillScroll = statsFactionScroll = UiScroll();
 	focus = 0;
 	containerPutting = false;
 	bookFromItems = false;

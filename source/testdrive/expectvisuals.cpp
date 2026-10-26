@@ -241,8 +241,11 @@ std::optional<bool> numberOfWorld(Session& s, const std::string& what, const std
 	else if (what == "statstab") v = s.statsTab;
 	else if (what == "statsskillgroup") v = s.statsSkillGroup;
 	else if (what == "statsrows") v = s.statsRowsShown;
-	else if (what == "statspages") v = s.statsPageCount;
-	else if (what == "statspage") v = s.statsTab == 2 ? s.statsSkillPage : s.statsFactionPage;
+	else if (what == "statsscroll") v = s.statsTab == 2 ? s.statsSkillScroll.scroll : s.statsFactionScroll.scroll;
+	else if (what == "maptipdrawn") { extern int g_mapTipDrawn; v = (float)g_mapTipDrawn; }
+	else if (what == "maptipx") { extern float g_mapTipBox[4]; v = g_mapTipBox[0]; }
+	else if (what == "maptipy") { extern float g_mapTipBox[4]; v = g_mapTipBox[1]; }
+	else if (what == "maptipw") { extern float g_mapTipBox[4]; v = g_mapTipBox[2]; }
 	else if (what == "hudmapzoom") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].zoom();
 	else if (what == "hudmapfollow") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].follow ? 1.0f : 0.0f;
 	else if (what == "hudmapx") v = s.hudMapViews[s.hudMapIsLocal() ? 1 : 0].center[0];

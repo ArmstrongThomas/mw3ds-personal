@@ -32,33 +32,46 @@ a separate personal repository, preserving normal upstream merging. Publishing r
   refills, and waits for streamed cells. Audio runs only on its owner's thread, throttled to 100 ms with recursion
   protection. Loading rendering has a recursion guard. No track restart is introduced.
 - Stats is now four tabs: Character, Attributes, Skills, Factions. It displays aligned values, vitals/level/skill
-  progress bars, major/minor/misc groups, faction ranks/reputation/expulsion, and paginated lists. L/R switches tabs;
-  Skills uses Left/Right for groups and Up/Down for pages. B closes. Existing stats calculations are unchanged.
+  progress bars, major/minor/misc groups, faction ranks/reputation/expulsion, and scrollable Skills/Factions lists.
+  Lists scroll by dragging, with the C-stick, or a row at a time with Up/Down; the Prev/Next pager is gone. L/R switches
+  tabs; Skills uses Left/Right for groups. B closes. Existing stats calculations are unchanged.
+- A tapped minimap marker's name is drawn on the HUD's top layer, outside the 96 px minimap, so long names such as
+  "Balmora, Guild of Fighters" are no longer clipped.
+- Combat equipment is read ahead: equipped gear's first-person pieces (weapon, shield, tool, ammo in the bow and in
+  flight) and the selected spell's cast/bolt/hit/area visuals are cached when the equipment or spell changes. Ready,
+  draw, shot and first cast no longer stop under "Updating equipment..." in normal play.
 
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`.
-SHA-256: `7f1ebb44f9d27468702796ec35f5f2b2baa0fa9b13acb8a1a051de201af4cc25`.
-Both native and devkitPro builds pass. This build was sent successfully over 3dslink on October 26; hardware
-feedback on the stats layout and audible loading music is pending.
+SHA-256: `ce199386e2453b93bd67f71785160dda946faf58f4be620b9c1efadf2dbc74a7` (2,385,372 bytes).
+Both native and devkitPro builds pass. This revision has not been sent to hardware yet; the previous build was sent
+successfully over 3dslink on October 26. Hardware feedback on the scrolled stats lists, the long minimap names, the
+equipment preload and audible loading music is pending.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
 | Test | Expectations | Evidence |
 | --- | ---: | --- |
-| `personal-stats-ui` | 28 | All tabs, skill/faction paging, empty/populated factions, L/R/B |
+| `personal-stats-ui` | 31 | All tabs, scrolled Misc/Factions lists, empty/populated factions, L/R/B |
+| `perf-stylus-map-markers` | 12 | Tap Balmora and its long Guild name; label drawn outside the minimap |
+| `feat-preload-equipment` | 4 | Bow and arrows cached at equip; ready adds no piece reads |
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |
 
 Logs: `build/*-tribunal-native.log`, `build/*-tribunal-emu.log`; captures: `build/shots/tribunal/`.
-Character, Attributes, Skills, and empty/populated/paginated Factions renders were inspected. Earlier navigation,
-marker, shrine tooltip, worn-effect, save, shutdown, and Old 3DS compatibility results are in the performance spec.
+Character, Attributes, the scrolled Misc skills list, empty Factions, and populated/scrolled Factions renders were
+inspected. Earlier navigation, marker, shrine tooltip, worn-effect, save, shutdown, and Old 3DS compatibility results
+are in the performance spec. The stats, marker-name and equipment-preload rows were rerun on both the native build and
+the isolated Azahar copy for this revision; the emulator still has no DSP firmware.
 
 ## Outstanding checks and limits
 
-1. Ask the user to listen during loading on hardware and review the new Stats screen. The emulator lacks DSP
-   firmware; its audio-init failure means current automated tests do not verify audible music continuity.
+1. Ask the user to listen during loading on hardware and review the new Stats screen, the long minimap marker names,
+   and combat's first ready/draw/shot/cast after the preload change. The emulator lacks DSP firmware; its audio-init
+   failure means current automated tests do not verify audible music continuity. Preload moves equipment reads to a
+   menu or loading screen; it does not make a read faster, and hardware timing of the move is still unmeasured.
 2. Initial exterior arrivals and individual model/texture reads remain expensive. Loading protection moves work
    behind a pause; it does not establish a faster load or an FPS-based stabilization algorithm.
 3. Memory-limited arrival neighbors can be deferred; this is logged rather than forced past heap/linear limits.

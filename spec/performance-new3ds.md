@@ -81,6 +81,17 @@ creating that picture can itself cost a frame.
 - The renderer builds/sorts the visible opaque draw list every first-eye pass; PlayerBody computes an equipment key
   every third-person update. These are candidates for revision-based caching if the CPU profiles justify it.
 
+## Combat equipment preload
+
+The first ready, draw or shot of a weapon used to stop the game under "Updating equipment..." while the view model read
+its pieces. The equipped gear's first-person pieces are now read ahead and cached: every equipped item's arm pieces,
+plus the weapon, shield, tool, ammo-in-bow piece and the ammo's in-flight model, are read when the equipment changes
+(a menu or the arrival's loading screen is normally up). Ready/draw then find them cached. The selected spell's cast,
+bolt, hit and area pieces (and the hand glow and OpenMW's fallbacks) are read when it is selected, before a cast can
+start; quick keys load them on the following frame. This moves reads out of combat; it does not make one faster, and a
+piece can still be released when linear memory runs short. (`viewmodel.cpp preloadEquipped`,
+`effectmanager.cpp preloadCastVfx`, `character.cpp viewModelUpdate`, test `feat-preload-equipment`.)
+
 ## Hardware comparison
 
 Use the same save, data, view-distance setting, 3D slider position, and route for both builds. Compare the race menu
