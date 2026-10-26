@@ -39,7 +39,8 @@ upstream updates as needed.
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`.
 SHA-256: `7f1ebb44f9d27468702796ec35f5f2b2baa0fa9b13acb8a1a051de201af4cc25`.
-Both native and devkitPro builds pass. The current build has not been sent to hardware yet.
+Both native and devkitPro builds pass. This build was sent successfully over 3dslink on October 26; hardware
+feedback on the stats layout and audible loading music is pending.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
