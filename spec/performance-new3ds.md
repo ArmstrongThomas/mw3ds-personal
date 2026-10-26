@@ -92,6 +92,9 @@ start; quick keys load them on the following frame. This moves reads out of comb
 piece can still be released when linear memory runs short. (`viewmodel.cpp preloadEquipped`,
 `effectmanager.cpp preloadCastVfx`, `character.cpp viewModelUpdate`, test `feat-preload-equipment`.)
 
+New 3DS XL feedback: combat is smooth with the preload. A quick switch to a weapon not yet cached still shows one load,
+then that weapon stays cached; long minimap marker names cover much of the screen but were accepted.
+
 ## Hardware comparison
 
 Use the same save, data, view-distance setting, 3D slider position, and route for both builds. Compare the race menu

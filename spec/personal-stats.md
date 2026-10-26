@@ -42,4 +42,5 @@ functional checks, and inspected renders. Emulator results are recorded separate
 
 The same Tribunal cases also pass on the actual 3DS executable in the personal checkout's isolated Azahar copy:
 stats (31), map marker names (12), equipment preload (4), minimap navigation (30), corpse rebuilding (14), and save
-arrivals (6). These are not audible-music tests.
+arrivals (6). These are not audible-music tests. New 3DS XL feedback: the scrolled Stats lists are better; long minimap
+names persist across taps and maps (very long ones cover much of the screen, accepted).

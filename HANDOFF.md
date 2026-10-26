@@ -45,9 +45,11 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`.
 SHA-256: `ce199386e2453b93bd67f71785160dda946faf58f4be620b9c1efadf2dbc74a7` (2,385,372 bytes).
-Both native and devkitPro builds pass. This revision has not been sent to hardware yet; the previous build was sent
-successfully over 3dslink on October 26. Hardware feedback on the scrolled stats lists, the long minimap names, the
-equipment preload and audible loading music is pending.
+Both native and devkitPro builds pass, and this revision was sent successfully over 3dslink on October 26. New 3DS XL
+hardware feedback: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one
+load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long
+names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. Audible loading music
+still needs a listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -68,19 +70,20 @@ the isolated Azahar copy for this revision; the emulator still has no DSP firmwa
 
 ## Outstanding checks and limits
 
-1. Ask the user to listen during loading on hardware and review the new Stats screen, the long minimap marker names,
-   and combat's first ready/draw/shot/cast after the preload change. The emulator lacks DSP firmware; its audio-init
-   failure means current automated tests do not verify audible music continuity. Preload moves equipment reads to a
-   menu or loading screen; it does not make a read faster, and hardware timing of the move is still unmeasured.
-2. Initial exterior arrivals and individual model/texture reads remain expensive. Loading protection moves work
+1. Audible loading music still needs a listening check on hardware. The emulator lacks DSP firmware; its audio-init
+   failure means current automated tests do not verify audible music continuity.
+2. Equipment preload moves reads to a menu or loading screen; it does not make a read faster. A weapon first equipped
+   or quick-switched during play still pays one synchronous read, then stays cached. Very long minimap names cover much
+   of the screen; accepted for now.
+3. Initial exterior arrivals and individual model/texture reads remain expensive. Loading protection moves work
    behind a pause; it does not establish a faster load or an FPS-based stabilization algorithm.
-3. Memory-limited arrival neighbors can be deferred; this is logged rather than forced past heap/linear limits.
-4. Original hardware feedback: exterior boundaries improved, race previews feel smoother, initial exterior load
+4. Memory-limited arrival neighbors can be deferred; this is logged rather than forced past heap/linear limits.
+5. Original hardware feedback: exterior boundaries improved, race previews feel smoother, initial exterior load
    still took about ten seconds of low FPS, and corpse equipment changes cost roughly twelve seconds or more.
    Per-piece timings exist to investigate the remaining cost. Player outfit changes were much cheaper.
-5. The old `bug-outdoor-stream-textures` falling warning was reproduced on the unchanged baseline at
+6. The old `bug-outdoor-stream-textures` falling warning was reproduced on the unchanged baseline at
    (-19174, 49552, 1330), vertical speed -1756. Do not report that scenario as a clean pass or a new regression.
-6. The personal repository is `https://github.com/ArmstrongThomas/mw3ds-personal`. Shared history and `upstream` allow
+7. The personal repository is `https://github.com/ArmstrongThomas/mw3ds-personal`. Shared history and `upstream` allow
    normal Git merges without GitHub's formal fork badge/Sync fork button. The original stylus issue response is
    already published; do not alter it for these personal changes unless requested.
 
