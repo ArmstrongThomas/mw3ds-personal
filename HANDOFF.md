@@ -43,8 +43,9 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 
 ## Latest artifact and verification
 
-Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`.
-SHA-256: `ce199386e2453b93bd67f71785160dda946faf58f4be620b9c1efadf2dbc74a7` (2,385,372 bytes).
+Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
+`mw3ds-personal.3dsx`. SHA-256: `9b5cf9acfd75b16a6471c56d999a47781bea257ed5c6c8c4f56cc1695178cf80`
+(2,385,372 bytes).
 Both native and devkitPro builds pass, and this revision was sent successfully over 3dslink on October 26. New 3DS XL
 hardware feedback: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one
 load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long
