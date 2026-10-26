@@ -42,7 +42,7 @@ If it stops, the whole log is in `work\converter-log.txt`: attach it to a
 ### 1. Get the code
 
 ```sh
-git clone --recurse-submodules https://github.com/3ds-conspiracy/mw3ds.git
+git clone --recurse-submodules https://github.com/ArmstrongThomas/mw3ds-personal.git
 ```
 
 `--recurse-submodules` also downloads the two optimization mods the builds use (see
