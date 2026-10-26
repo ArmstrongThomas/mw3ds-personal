@@ -129,6 +129,18 @@ The engine finds out which console it is on and, on an Old 3DS, takes a lighter 
 
 ### Controls
 
+**Stylus look** (Options > Touch) adds relative touch-screen aiming. Slide to turn the camera; lift and touch down
+again to reposition without turning. Sensitivity, vertical inversion, and stylus hand are saved between sessions.
+The bottom screen becomes a look pad with compact health, magicka, and fatigue bars. Quick slots and menu buttons
+stay below the pad; use Map for the full map. Notices and target labels remain on the top screen.
+
+Choose **Right** for a right-hand stylus: Circle Pad moves, L attacks, and the D-pad activates (up), casts (right),
+jumps (down), or readies the weapon (left). Choose **Left** for a left-hand stylus: X/B move forward/backward, Y/A
+strafe left/right, and R attacks. In either mode, tap Use, Cast, Jump, Ready, or Sneak below the pad. Hold Jump to swim
+up or rise while levitating; Sneak toggles crouching and swimming down. START opens the game menu and SELECT switches
+first/third person. Layout on the Touch tab shows these controls. Turning stylus look off restores the selected
+Xbox, classic, or GoldenEye layout. This option starts off.
+
 An Old 3DS has no C-stick and no ZL / ZR (without the Circle Pad Pro), so its default layout is **GoldenEye**: one stick
 that walks and turns, on the Xbox layout's buttons, and a button that stops you to aim. The D-pad strafes.
 

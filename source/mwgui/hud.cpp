@@ -7,6 +7,7 @@
 #include "mwbase/session.hpp"
 #include <cstdio>
 #include "mwgui/windowmanagerimp.hpp"
+#include "mwinput/touchlook.hpp"
 #include <array>
 #include <functional>
 #include <sys/stat.h>
@@ -322,7 +323,40 @@ void Session::drawHud()
 	if (const ClassDef* c = w.playerClass())
 		sub += " " + c->name;
 	header(s.name, sub);
+	if (g_touchLook)
+	{
+		float cur[3] = { s.health, s.magicka, s.fatigue }, max[3] = { s.healthMax, s.magickaMax, s.fatigueMax };
+		u32 colors[3] = { col::health, col::magicka, col::fatigue };
+		for (int i = 0; i < 3; i++)
+		{
+			float x = 6 + i * 104;
+			uiBar(x, 28, 100, 14, max[i] > 0 ? cur[i] / max[i] : 0, colors[i]);
+			char value[32];
+			snprintf(value, sizeof(value), "%d/%d", (int)cur[i], (int)max[i]);
+			float tw = uiTextWidth(value, 0.36f);
+			uiRect(x + 50 - tw / 2 - 2, 29, tw + 4, 12, C2D_Color32(0, 0, 0, 210));
+			uiTextCentered(x + 50, 35 - uiLineHeight(0.36f) / 2, 0.36f, col::textPressed, value);
+		}
+		uiRect(TouchLook::left, TouchLook::top, TouchLook::width, TouchLook::height, col::panel);
+		uiFrame(TouchLook::left, TouchLook::top, TouchLook::width, TouchLook::height);
+		uiTextCentered(160, 84, 0.55f, col::header, "Slide to look");
+		uiTextCentered(160, 108, 0.42f, col::text, "Lift the stylus to reposition");
+		uiTextCentered(160, 132, 0.42f, col::text, g_touchLeftHanded ? "ABXY: move   R: attack" : "Circle Pad: move   L: attack");
+		static const char* actions[5] = { "Use", "Cast", "Jump", "Ready", "Sneak" };
+		for (int i = 0; i < 5; i++)
+			uiButton(TouchLook::actionLeft + i * TouchLook::actionStep, TouchLook::actionTop,
+				TouchLook::actionWidth, TouchLook::actionHeight, actions[i], i == 4 && w.player.sneaking);
+		drawQuickStrip();
+		hudEffectIcons = 0;
+	}
+	else
+		drawStandardHud();
+	drawHudMenus();
+}
 
+void Session::drawStandardHud()
+{
+	const PlayerStats& s = w.stats;
 	// Health, magicka, fatigue (Morrowind's colours), the numbers inside the bars
 	float cur[3] = { s.health, s.magicka, s.fatigue }, max[3] = { s.healthMax, s.magickaMax, s.fatigueMax };
 	u32 colors[3] = { col::health, col::magicka, col::fatigue };
@@ -435,6 +469,10 @@ void Session::drawHud()
 	char perf[64];
 	snprintf(perf, sizeof(perf), "%.0f fps", fps);
 	uiTextRight(312, 27, 0.34f, col::textDim, perf);
+}
+
+void Session::drawHudMenus()
+{
 	bool inv = w.menusEnabled & MENU_INVENTORY, stats = w.menusEnabled & MENU_STATS;
 	if (uiButton(2, 208, 51, 28, "Items", false, inv))
 		openScreen(SCR_INVENTORY);

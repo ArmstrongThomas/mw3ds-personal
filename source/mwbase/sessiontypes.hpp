@@ -44,6 +44,9 @@ extern int g_gyroAim;
 // (the console's own tilt)
 extern int g_lookSpeed, g_geTurnSpeed;
 extern bool g_invertY;
+extern bool g_touchLook, g_touchInvertY, g_touchLeftHanded;
+extern int g_touchSensitivity;
+static const int kTouchMinPct = 50, kTouchMaxPct = 300, kTouchStepPct = 10;
 static const int kLookMinPct = 100, kLookMaxPct = 300, kLookStepPct = 10;      // (the bar's middle is 2.00x: 1.00x was too slow)
 static const int kGeTurnMinPct = 50, kGeTurnMaxPct = 200;
 // A new player's look speed, and Look's Default: quicker than 1.00x, which felt slow on the console (1.20x still did).
@@ -71,6 +74,7 @@ enum Screen
 	SCR_CONSOLE,
 	SCR_CLASS_CREATE,
 	SCR_AUDIO,
+	SCR_TOUCH,
 };
 
 struct MessageState

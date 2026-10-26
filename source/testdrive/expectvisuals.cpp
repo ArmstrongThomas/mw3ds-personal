@@ -241,6 +241,10 @@ std::optional<bool> numberOfWorld(Session& s, const std::string& what, const std
 		else if (arg == "inverty") v = g_invertY ? 1.0f : 0.0f;
 		else if (arg == "subtitles") v = g_subtitles ? 1.0f : 0.0f;
 		else if (arg == "stickzone") v = (float)g_stickZonePct;
+		else if (arg == "touchlook") v = g_touchLook ? 1.0f : 0.0f;
+		else if (arg == "touchsens") v = (float)g_touchSensitivity;
+		else if (arg == "touchinvert") v = g_touchInvertY ? 1.0f : 0.0f;
+		else if (arg == "touchleft") v = g_touchLeftHanded ? 1.0f : 0.0f;
 		else
 			return false;
 	}

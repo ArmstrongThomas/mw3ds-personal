@@ -12,6 +12,7 @@
 #include "components/debug/debuglog.hpp"
 #include "platform/platform.hpp"
 #include "mwinput/inputmanagerimp.hpp"
+#include "mwinput/stylusinput.hpp"
 #include "testdrive/steprunner.hpp"
 
 extern "C" u32 __ctru_heap_size, __ctru_linear_heap_size;
@@ -70,7 +71,15 @@ void runScriptedStep(Session* session, ScriptedSteps& autoinput, size_t& inputIn
 		g_gyroAim = s.gyroAim;
 		logf("test: gyro aim %d%%", g_gyroAim);
 	}
-	if (g_controlLayout == CONTROLS_GOLDENEYE)
+	if (g_touchLook && !session->menuOpen())
+	{
+		in = {};
+		in.moveX = s.moveX;
+		in.moveY = s.moveY;
+		in.lookX = s.lookX * lookScale();
+		stylusInput(in, g_touchLeftHanded, held, down);
+	}
+	else if (g_controlLayout == CONTROLS_GOLDENEYE)
 	{
 		PlayerInput ge = {};
 		ge.quick = -1;

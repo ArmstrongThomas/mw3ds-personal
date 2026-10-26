@@ -111,10 +111,11 @@ void Session::aimAndActivate(const PlayerInput& in, bool menu)
 	target = menu ? -1 : worldPick(w, eye, dir, kReach + w.effectTotal(59) * 22.0f);
 	// (GoldenEye: on a tap of A, let go before it aimed; the press itself is kept from the screens either way)
 	bool goldenEye = g_controlLayout == CONTROLS_GOLDENEYE;
-	if (!menu && ((uiIn().down & KEY_A) || (goldenEye && in.activate)))
+	bool activate = g_touchLook ? in.activate : goldenEye ? in.activate : (uiIn().down & KEY_A) != 0;
+	if (!menu && (activate || (!g_touchLook && (uiIn().down & KEY_A))))
 	{
 		uiConsume(KEY_A);
-		if ((goldenEye ? in.activate : true) && target >= 0 && w.controlsEnabled)
+		if (activate && target >= 0 && w.controlsEnabled)
 			playerActivate(target);
 	}
 }

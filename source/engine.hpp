@@ -9,6 +9,7 @@
 
 #include "testdrive/autoinput.hpp"
 #include "testdrive/testdrive.hpp"
+#include "mwinput/touchlook.hpp"
 
 struct Session;
 
@@ -59,5 +60,7 @@ struct Engine
 	float t = 0.0f;
 	// The touch screen between frames: taps and drags
 	bool touchWasDown = false, dragged = false;
+	TouchLook touchLook;
+	bool touchSneakOn = false;
 	int lastTouchX = 0, lastTouchY = 0, pressX = 0, pressY = 0;
 };

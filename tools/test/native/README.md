@@ -29,6 +29,16 @@ or memory limits. A case that takes minutes on Azahar takes seconds here.
 
 ## Commands (from the repo root)
 
+The stylus controls have a standalone gesture and handedness test:
+
+```sh
+python -m ziglang c++ -std=c++17 -Isource -Itools/test/native/stub -include tools/test/native/stub/native_compat.h tools/test/native/touchlook_test.cpp -o build/native/touchlook_test.exe
+build/native/touchlook_test.exe
+```
+
+Run `feat-stylus-ui` through the runner below to check saved settings, both handedness layouts, action buttons,
+menu access, and equal swipe rotation at 30 and 60 FPS. Add `--shots build/shots/stylus` to render both screens.
+
 Build (only needed after changing `source/`; the runner builds if the exe is missing):
 
 ```sh

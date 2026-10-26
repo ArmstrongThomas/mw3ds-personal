@@ -128,7 +128,7 @@ int screenByName(const std::string& n)
 		{ "training", SCR_TRAINING }, { "spellmake", SCR_SPELLMAKE }, { "enchant", SCR_ENCHANT },
 		{ "alchemy", SCR_ALCHEMY }, { "recharge", SCR_RECHARGE }, { "persuade", SCR_PERSUADE }, { "spells", SCR_SPELLS },
 		{ "race", SCR_RACE }, { "birth", SCR_BIRTH }, { "stats", SCR_STATS }, { "saves", SCR_SAVES }, { "death", SCR_DEATH },
-		{ "journal", SCR_JOURNAL }, { "gamemenu", SCR_GAMEMENU }, { "map", SCR_MAP },
+		{ "journal", SCR_JOURNAL }, { "gamemenu", SCR_GAMEMENU }, { "map", SCR_MAP }, { "touch", SCR_TOUCH },
 		{ "classmethod", SCR_CLASS_METHOD }, { "classquiz", SCR_CLASS_QUIZ }, { "classlist", SCR_CLASS_LIST }, { "classresult", SCR_CLASS_RESULT }, { "classcreate", SCR_CLASS_CREATE }, { "review", SCR_REVIEW }, { "magic", SCR_MAGIC }, { "options", SCR_OPTIONS }, { "display", SCR_DISPLAY }, { "controls", SCR_CONTROLS }, { "look", SCR_LOOK }, { "console", SCR_CONSOLE },
 	};
 	for (auto& e : names)

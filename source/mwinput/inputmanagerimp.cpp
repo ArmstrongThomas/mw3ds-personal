@@ -12,6 +12,7 @@
 #include "components/debug/debuglog.hpp"
 #include "mwbase/session.hpp"
 #include "mwinput/inputmanagerimp.hpp"
+#include "mwinput/stylusinput.hpp"
 
 // The C-stick up / down for the menus' text panes: -1 (up) to 1 (down), nothing inside the dead zone
 float readStickScroll()
@@ -204,6 +205,11 @@ PlayerInput readInput(u32 held, u32 down, u32 up, float dt)
 	in.lookY = cy * lookScale();
 	in.quick = -1;
 	gyroInput(in);
+	if (g_touchLook && !g_menuForInput)
+	{
+		stylusInput(in, g_touchLeftHanded, held, down);
+		return invertLook(in);
+	}
 	if (g_controlLayout == CONTROLS_GOLDENEYE)
 	{
 		static GoldenEyeState state;

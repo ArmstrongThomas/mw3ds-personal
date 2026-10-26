@@ -16,29 +16,29 @@
 #include <cstdlib>
 #include <malloc.h>
 
-// Options, in Morrowind's tabs: Prefs, Audio, Video and Controls (L / R, or a tap on a tab). Each tab is a column of
+// Options: Prefs, Audio, Video, Controls and Touch (L / R, or a tap on a tab). Each tab is a column of
 // settings, a bar (D-pad left / right, or a tap on it, sets it) or a value (A, a tap or D-pad right steps to the next,
 // left to the one before), over its buttons; D-pad up / down moves between them. Kept in settings.txt. Each tab is its
-// own screen (options, audio, display, look), so B and Close leave from any of them. 3D has no setting: the 3D slider
+// own screen (options, audio, display, look, touch), so B and Close leave from any of them. 3D has no setting: the 3D slider
 // alone turns it on and off
-static const Screen kOptionTabs[4] = { SCR_OPTIONS, SCR_AUDIO, SCR_DISPLAY, SCR_LOOK };
+static const Screen kOptionTabs[5] = { SCR_OPTIONS, SCR_AUDIO, SCR_DISPLAY, SCR_LOOK, SCR_TOUCH };
 static const int kControlsButtonsFocus = 6;   // Controls' Layout button, where the button list's Close comes back to
 
 void Session::drawOptions()
 {
 	int tab = 0;
-	while (tab < 3 && kOptionTabs[tab] != screen)
+	while (tab < 4 && kOptionTabs[tab] != screen)
 		tab++;
 	header(w.game.gmst("soptions", "Options"));
 	const UiInput& in = uiIn();
-	static const char* kTabKeys[4][2] = { { "sprefs", "Prefs" }, { "saudio", "Audio" }, { "svideo", "Video" },
-		{ "scontrols", "Controls" } };
+	static const char* kTabKeys[5][2] = { { "sprefs", "Prefs" }, { "saudio", "Audio" }, { "svideo", "Video" },
+		{ "scontrols", "Controls" }, { "", "Touch" } };
 	int to = -1;
-	for (int i = 0; i < 4; i++)
-		if (uiButton(4 + i * 79, 24, 75, 20, w.game.gmstLabel(kTabKeys[i][0], kTabKeys[i][1]), i == tab) && i != tab)
+	for (int i = 0; i < 5; i++)
+		if (uiButton(4 + i * 63, 24, 60, 20, i == 4 ? "Touch" : w.game.gmstLabel(kTabKeys[i][0], kTabKeys[i][1]), i == tab) && i != tab)
 			to = i;
-	if (in.down & KEY_L) to = (tab + 3) % 4;
-	if (in.down & KEY_R) to = (tab + 1) % 4;
+	if (in.down & KEY_L) to = (tab + 4) % 5;
+	if (in.down & KEY_R) to = (tab + 1) % 5;
 	if (to >= 0)
 	{
 		openScreen(kOptionTabs[to]);
@@ -243,6 +243,37 @@ void Session::drawOptions()
 			changed = true;
 		}
 	}
+	else if (screen == SCR_TOUCH)
+	{
+		if (choice(50, "Stylus look", onOff(g_touchLook)))
+		{
+			g_touchLook = !g_touchLook;
+			notify(g_touchLook ? "Stylus look on: slide on the look pad. Lift to reposition." : "Stylus look off.");
+		}
+		snprintf(text, sizeof(text), "%.2fx", g_touchSensitivity / 100.0f);
+		bar(80, "Stylus sensitivity", text, g_touchSensitivity, kTouchMinPct, kTouchMaxPct, kTouchStepPct);
+		if (choice(118, "Invert stylus", onOff(g_touchInvertY)))
+			g_touchInvertY = !g_touchInvertY;
+		if (choice(146, "Stylus hand", g_touchLeftHanded ? "Left" : "Right"))
+			g_touchLeftHanded = !g_touchLeftHanded;
+		uiText(10, 176, 0.42f, col::text, g_touchLeftHanded ? "ABXY: move. R: attack. ZR: sneak."
+			: "Circle Pad: move. L: attack. R: sneak.");
+		uiText(10, 192, 0.42f, col::text, "Slide to look; lift to reposition.");
+		b = buttons(208, 28, { "Default", "Layout", w.game.gmstLabel("sclose", "Close") });
+		closing = b == 2;
+		if (b == 1)
+		{
+			openScreen(SCR_CONTROLS);
+			return;
+		}
+		if (b == 0)
+		{
+			g_touchLook = g_touchInvertY = false;
+			g_touchLeftHanded = false;
+			g_touchSensitivity = 100;
+			changed = true;
+		}
+	}
 	else
 	{
 		// Look speed (the C-stick, the D-pad and the GoldenEye pad while aiming: one bar, they were two) and the GoldenEye
@@ -320,6 +351,38 @@ void Session::drawOptions()
 // What each button does
 void Session::drawControls()
 {
+	if (g_touchLook || touchControlsHelp)
+	{
+		header(g_touchLeftHanded ? "Stylus controls (left hand)" : "Stylus controls (right hand)");
+		const char* rows[][2] = {
+			{ "Move", g_touchLeftHanded ? "X forward, B backward" : "Circle Pad" },
+			{ "Strafe", g_touchLeftHanded ? "Y left, A right" : "Circle Pad left / right" },
+			{ "Look", "Slide on the look pad" },
+			{ "Attack", g_touchLeftHanded ? "Hold R, release to strike" : "Hold L, release to strike" },
+			{ "Activate", g_touchLeftHanded ? "Tap Use" : "D-pad up / tap Use" },
+			{ "Cast", g_touchLeftHanded ? "Tap Cast" : "D-pad right / tap Cast" },
+			{ "Jump / swim up", g_touchLeftHanded ? "Tap / hold Jump" : "D-pad down / tap Jump" },
+			{ "Ready weapon", g_touchLeftHanded ? "Tap Ready" : "D-pad left / tap Ready" },
+			{ "Sneak / swim down", "Tap Sneak to toggle" },
+			{ "First / third", "SELECT" }, { "Game menu", "START" },
+			{ "Quick keys / menus", "Tap below the look pad" }
+		};
+		for (int i = 0; i < 12; i++)
+		{
+			uiText(10, 30 + i * 14, 0.42f, col::header, rows[i][0]);
+			uiText(140, 30 + i * 14, 0.42f, col::text, rows[i][1]);
+		}
+		if (uiIn().down & KEY_LEFT) focus = 0;
+		if (uiIn().down & KEY_RIGHT) focus = 1;
+		if (uiButton(4, 208, 154, 28, "Swap stylus hand", focus == 0))
+		{
+			g_touchLeftHanded = !g_touchLeftHanded;
+			saveSettings();
+		}
+		if (uiButton(162, 208, 154, 28, w.game.gmst("sclose", "Close"), focus == 1) || (uiIn().down & KEY_B))
+			openScreen(SCR_TOUCH);
+		return;
+	}
 	bool xbox = g_controlLayout == CONTROLS_XBOX, goldenEye = g_controlLayout == CONTROLS_GOLDENEYE;
 	header(xbox ? "Controls (Xbox layout)" : goldenEye ? "Controls (GoldenEye layout)" : "Controls (classic layout)");
 	static const char* kXbox[][2] = {

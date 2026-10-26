@@ -249,12 +249,18 @@ void Session::playerControls(PlayerInput& in, bool menu)
 		in.moveX = in.moveY = 0.0f;
 		in.jump = false;
 		if (menu)
+		{
 			in.lookX = in.lookY = in.gyroYaw = in.gyroPitch = 0.0f;
+			in.touchYaw = in.touchPitch = 0.0f;
+		}
 	}
 	if (!w.jumpingEnabled)
 		in.jump = false;
 	if (w.controlsOff & 1u)
+	{
 		in.lookX = in.lookY = in.gyroYaw = in.gyroPitch = 0.0f;        // DisablePlayerLooking
+		in.touchYaw = in.touchPitch = 0.0f;
+	}
 }
 
 void Session::playerMove(const PlayerInput& in, float dt, u64& t)

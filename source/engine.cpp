@@ -405,6 +405,36 @@ bool Engine::frame()
 	ui.stickY = inputIndex < autoinput.size() && loaded ? autoinput[inputIndex].stickY : readStickScroll();
 	ui.stickX = inputIndex < autoinput.size() && loaded ? autoinput[inputIndex].stickX : readStickTurn();
 	ui.dt = dt;
+	bool stylusGameplay = loaded && g_touchLook && !session->menuOpen() && !session->wantName
+		&& !session->wantText && !session->moviePlaying() && !session->playerDead && !(down & KEY_START);
+	{
+		if (touchLook.update(ui.touching, stylusGameplay, ui.touchX, ui.touchY))
+		{
+			ui.touching = ui.tapped = false;
+			ui.dragDX = ui.dragDY = 0;
+		}
+		const float radiansPerPixel = 0.005f * g_touchSensitivity / 100.0f;
+		in.touchYaw = touchLook.dx * radiansPerPixel;
+		in.touchPitch = touchLook.dy * radiansPerPixel * (g_touchInvertY ? 1.0f : -1.0f);
+	}
+	if (stylusGameplay)
+	{
+		int action = ui.tapped ? TouchLook::actionAt(ui.tapX, ui.tapY) : -1;
+		if (action >= 0)
+		{
+			if (action == 0) in.activate = true;
+			if (action == 1) in.cast = true;
+			if (action == 2) in.jump = true;
+			if (action == 3) in.readyToggle = true;
+			if (action == 4) touchSneakOn = !touchSneakOn;
+		}
+		in.sneak = in.sneak || touchSneakOn;
+		in.down = in.sneak;
+		if (ui.touching && TouchLook::actionAt(ui.touchX, ui.touchY) == 2)
+			in.up = true;
+	}
+	else if (!g_touchLook)
+		touchSneakOn = false;
 	uiBeginFrame(ui);
 
 	if (session->wantName)

@@ -188,7 +188,8 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	void noteRenderCost(float cpuMs, float gpuMs, bool stereo, float eyeCmd);
 	void loadSettings();
 	float difficultyScale(bool toPlayer) const;   // damage multiplier: to the player / dealt by the player
-	void drawOptions();               // the Options tabs: Prefs, Audio, Video (SCR_DISPLAY), Controls (SCR_LOOK)
+	void drawOptions();               // Prefs, Audio, Video, Controls and Touch
+	bool touchControlsHelp = false;
 	void drawControls();              // Options > Controls > Buttons: what each button does
 	void drawConsole();               // Options > Console: one MWScript line at a time (mwgui/console.cpp)
 	void saveSettings();
@@ -342,6 +343,8 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 
 	// screens (mwgui/hud.cpp, mwgui/messagebox.cpp)
 	void drawHud();
+	void drawStandardHud();
+	void drawHudMenus();
 	std::vector<ActiveEffect> hudEffects();
 	void drawQuickStrip();
 	void drawMessage();

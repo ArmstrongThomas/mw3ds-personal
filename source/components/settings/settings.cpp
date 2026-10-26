@@ -20,6 +20,9 @@ int g_gyroAim = 0;                // gyro aim starts off (until it is tried on t
 int g_lookSpeed = kLookDefaultPct, g_geTurnSpeed = 100;
 int g_stickZonePct = kStickZoneDefaultPct;
 bool g_invertY = false;
+bool g_touchLook = false, g_touchInvertY = false;
+bool g_touchLeftHanded = false;
+int g_touchSensitivity = 100;
 bool g_subtitles = true;
 int g_depthMode = DEPTH_16_IN_3D;
 static int s_gyroSens = 100;      // gyro aim's sensitivity, kept while it is off
@@ -39,6 +42,9 @@ void Session::loadSettings()
 		g_lookSpeed = g_geTurnSpeed = 100;
 		g_stickZonePct = kStickZoneDefaultPct;
 		g_invertY = false;
+		g_touchLook = g_touchInvertY = false;
+		g_touchLeftHanded = false;
+		g_touchSensitivity = 100;
 		g_subtitles = true;
 		g_depthMode = DEPTH_24;          // (DEPTH16:on asks for the 16-bit buffer)
 	}
@@ -64,6 +70,11 @@ void Session::loadSettings()
 		else if (strncmp(line, "gyroaim=on", 10) == 0) gyroOn = true;
 		else if (strncmp(line, "gyrosens=", 9) == 0 && atoi(line + 9) > 0) s_gyroSens = atoi(line + 9);
 		else if (autotest) {}
+		else if (strncmp(line, "touchlook=", 10) == 0) g_touchLook = strncmp(line + 10, "on", 2) == 0;
+		else if (strncmp(line, "touchhand=", 10) == 0) g_touchLeftHanded = strncmp(line + 10, "left", 4) == 0;
+		else if (strncmp(line, "touchinvert=", 12) == 0) g_touchInvertY = strncmp(line + 12, "on", 2) == 0;
+		else if (strncmp(line, "touchsens=", 10) == 0)
+			g_touchSensitivity = std::max(kTouchMinPct, std::min(kTouchMaxPct, atoi(line + 10)));
 		else if (strncmp(line, "gamma=", 6) == 0)
 			g_gammaPct = std::max(kGammaMinPct, std::min(kGammaMaxPct, atoi(line + 6)));
 		else if (strncmp(line, "autogamma=on", 12) == 0) g_autoGamma = 1;
@@ -110,6 +121,9 @@ void Session::saveSettings()
 		fprintf(f, "autogamma=%s\n", g_autoGamma ? "on" : "off");
 	fprintf(f, "lookspeed=%d\ngeturn=%d\ninverty=%s\n", g_lookSpeed, g_geTurnSpeed, g_invertY ? "on" : "off");
 	fprintf(f, "stickzone=%d\n", g_stickZonePct);
+	fprintf(f, "touchlook=%s\ntouchsens=%d\ntouchinvert=%s\n", g_touchLook ? "on" : "off",
+		g_touchSensitivity, g_touchInvertY ? "on" : "off");
+	fprintf(f, "touchhand=%s\n", g_touchLeftHanded ? "left" : "right");
 	fprintf(f, "subtitles=%s\n", g_subtitles ? "on" : "off");
 	fprintf(f, "depth=%s\n", g_depthMode == DEPTH_24 ? "24" : g_depthMode == DEPTH_16_IN_3D ? "16in3d" : "16");
 	fprintf(f, "view=%s\n", viewMode == VIEW_MIN ? "min" : viewMode == VIEW_MAX ? "max" : viewMode == VIEW_MID ? "mid" : "auto");
