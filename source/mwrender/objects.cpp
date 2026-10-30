@@ -39,11 +39,11 @@ struct __attribute__((packed)) BatchHeader
 bool texImportFile(C3D_Tex* tex, const char* path)
 {
 	MarkScope mark("texture read");
-	FILE* f = fopen(path, "rb");
+	FILE* f = zopen(path);
 	if (!f)
 		return false;
 	Tex3DS_Texture t3x = Tex3DS_TextureImportStdio(f, tex, nullptr, false);
-	fclose(f);
+	zclose(f);
 	if (!t3x)
 		return false;
 	Tex3DS_TextureFree(t3x);

@@ -1,6 +1,6 @@
 # Agent handoff
 
-Updated: October 26, 2026. This file is sufficient context to resume with another agent; read `HANDOFF.local.md` for
+Updated: October 30, 2026. This file is sufficient context to resume with another agent; read `HANDOFF.local.md` for
 this PC's paths and device details. No Codex-specific skill or chat history is required to build the project.
 
 ## Repository and scope
@@ -51,18 +51,22 @@ a separate personal repository, preserving normal upstream merging. Publishing r
   flight), the selected spell's cast/bolt/hit/area visuals, and every blood splat a hit can throw are cached when the
   equipment or spell changes or at startup. Ready, draw, shot, first cast and the first successful hit no longer stop
   under "Updating equipment..." in normal play; the blood pieces are pinned from the VFX trimmer.
+- Optional SD data pack: `tools/build/make_pak.py` packs the converted cell/actor/first-person/texture/art/UI files and
+  game JSON into `data.pak` with a sorted `data.idx` (FNV-1a path hash -> offset/size). The engine mounts it at startup
+  and reads those paths with one file open each, instead of making the 3DS FAT driver scan thousands of loose files.
+  The ~0.5 MB index is loaded into RAM once. Sound, music and movies stay loose; no 1 GB CIA is needed for data updates.
 
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `4c0d450c3a9dfc1de6d1651be93b2369a963bb5cd61335905c9eea033e313ed4`
-(2,394,216 bytes).
+`mw3ds-personal.3dsx`. SHA-256: `e2b6e9a22cf2a1eb8b16114736978a4facc43f2b483ce608c918eeab77480493`
+(2,399,184 bytes).
 Both native and devkitPro builds pass. The blood-preload, TCL, save/load rework and full save-preview builds were sent
-over 3dslink on October 26. New 3DS XL feedback on the earlier build: equipment preload makes combat smooth; a quick
-switch to a weapon not yet cached still shows one load, then that weapon stays cached. Minimap labels persist across taps
-and between the minimap and full map; very long names span much of the screen but were accepted. The scrolled Stats
-lists were confirmed better. The blood-splat preload, TCL behavior and the save/load preview are pending hardware
-confirmation. Audible loading music still needs a listening check.
+over 3dslink on October 26; this data-pack build is built and tested but not sent. New 3DS XL feedback on the earlier
+build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one load, then that
+weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long names span much of
+the screen but were accepted. The scrolled Stats lists were confirmed better. The blood-splat preload, TCL behavior and
+the save/load preview are pending hardware confirmation. Audible loading music still needs a listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -85,6 +89,26 @@ Character, Attributes, the scrolled Misc skills list, empty Factions, and popula
 inspected. Earlier navigation, marker, shrine tooltip, worn-effect, save, shutdown, and Old 3DS compatibility results
 are in the performance spec. The stats, marker-name, equipment-preload, blood-preload, console-command and save rows were
 rerun on both the native build and the isolated Azahar copy for this revision; the emulator still has no DSP firmware.
+
+## SD data pack
+
+The program-only CIA can read one indexed pack from the SD card:
+
+```
+python tools/build/make_pak.py --data out/data-tribunal --out sd/3ds/mw3ds/data/data.pak
+```
+
+That writes `data.pak` and `data.idx` beside each other. Copy those two files to `sdmc:/3ds/mw3ds/data/`, and keep
+`snd/`, `music/` and `movies/` there as loose folders (the packer leaves them loose on purpose: they stream, and the
+sound code opens them directly). The loose `cells/`, `fp/`, `tex/`, `art/`, `ui/` folders and `game*.json` are then
+redundant on the card; the pack is read in preference to them. Rebuilding after a reconvert takes about 90 seconds and
+does not rebuild or reinstall the CIA.
+
+`--all` also packs sound/music/movies, but the audio reader still uses direct `fopen`, so do not remove those loose
+folders until the audio path is archive-aware. The packer's default leaves `music`, `movies`, `sound` and `snd` loose.
+
+The native and isolated Azahar builds loaded the whole Tribunal island through the pack (`feat-save-preview` with
+`--data build/native/pack`); real-hardware load timing and the speed difference from loose files are still unmeasured.
 
 ## Outstanding checks and limits
 

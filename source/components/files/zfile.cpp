@@ -8,19 +8,170 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <string>
+#include <vector>
+#include <sys/stat.h>
 #include <zlib.h>
 
 #include "components/debug/debuglog.hpp"
 #include "mwsound/soundmanagerimp.hpp"
 
+#ifdef __LARGE64_FILES
+typedef _off64_t ZOff;
+#else
+typedef off_t ZOff;
+#endif
+
+// The optional data pack: data.pak holds the files back to back, data.idx a sorted table of
+// (FNV-1a hash of the relative path, offset, size). Opening one entry in the pack avoids the FAT
+// directory scan that makes the loose SD copy slow (tools/build/make_pak.py writes both files).
+// The index (about 0.5 MB for the whole island) is kept in RAM: reading it from the card for every
+// lookup was slower than the loose files.
+struct ArchiveEntry { u64 offset = 0, size = 0; };
+struct ArchiveRecord { u64 hash, offset, size; };
+static_assert(sizeof(ArchiveRecord) == 24, "data.idx records are 24 bytes");
+static std::string s_archiveRoot, s_archivePak;
+static std::vector<ArchiveRecord> s_archive;
+
+static u64 archiveHash(const std::string& path)
+{
+	u64 h = 0xCBF29CE484222325ULL;
+	for (unsigned char c : path)
+	{
+		h ^= c;
+		h *= 0x100000001B3ULL;
+	}
+	return h;
+}
+
+static void archiveClose()
+{
+	s_archive.clear();
+	s_archiveRoot.clear();
+	s_archivePak.clear();
+}
+
+void zarchiveMount(const char* dataDir)
+{
+	archiveClose();
+	if (!dataDir || !*dataDir)
+		return;
+	std::string root = dataDir;
+	while (!root.empty() && (root.back() == '/' || root.back() == '\\'))
+		root.pop_back();
+	struct stat st;
+	if (stat((root + "/data.pak").c_str(), &st) != 0)
+		return;
+	std::string idx = root + "/data.idx";
+	FILE* f = fopen(idx.c_str(), "rb");
+	if (!f)
+		return;
+	char head[16] = {};
+	u32 version = 0, count = 0;
+	bool ok = fread(head, 1, sizeof(head), f) == sizeof(head) && memcmp(head, "MWPAK1\0\0", 8) == 0;
+	if (ok)
+	{
+		memcpy(&version, head + 8, 4);
+		memcpy(&count, head + 12, 4);
+		ok = version == 1 && count > 0 && count < (1u << 20);
+	}
+	std::vector<ArchiveRecord> records;
+	if (ok)
+	{
+		records.resize(count);
+		ok = fread(records.data(), sizeof(ArchiveRecord), records.size(), f) == records.size();
+	}
+	fclose(f);
+	if (!ok)
+		return;
+	s_archive = std::move(records);
+	s_archiveRoot = root;
+	s_archivePak = root + "/data.pak";
+	logf("data pack: %s (%u entries)", s_archivePak.c_str(), (unsigned)s_archive.size());
+}
+
+bool zarchiveMounted()
+{
+	return !s_archive.empty();
+}
+
+static bool archiveRelative(const char* path, std::string& rel)
+{
+	if (s_archive.empty() || path == nullptr)
+		return false;
+	std::string p = path;
+	if (p.size() <= s_archiveRoot.size() || p.compare(0, s_archiveRoot.size(), s_archiveRoot) != 0)
+		return false;
+	size_t at = s_archiveRoot.size();
+	if (p[at] != '/' && p[at] != '\\')
+		return false;
+	rel.assign(p, at + 1, std::string::npos);
+	for (char& c : rel)
+		if (c == '\\')
+			c = '/';
+	return !rel.empty();
+}
+
+static bool archiveLookup(const char* path, ArchiveEntry& e)
+{
+	std::string rel;
+	if (!archiveRelative(path, rel))
+		return false;
+	u64 want = archiveHash(rel);
+	size_t lo = 0, hi = s_archive.size();
+	while (lo < hi)
+	{
+		size_t mid = lo + (hi - lo) / 2;
+		const ArchiveRecord& r = s_archive[mid];
+		if (want < r.hash)
+			hi = mid;
+		else if (want > r.hash)
+			lo = mid + 1;
+		else
+		{
+			e.offset = r.offset;
+			e.size = r.size;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool zexists(const char* path)
+{
+	ArchiveEntry e;
+	if (archiveLookup(path, e))
+		return true;
+	struct stat st;
+	return path && stat(path, &st) == 0;
+}
+
 char* zreadAll(const char* path, size_t* sizeOut)
 {
-	FILE* f = fopen(path, "rb");
+	FILE* f = nullptr;
+	long fileSize = 0;
+	ArchiveEntry entry;
+	if (archiveLookup(path, entry))
+	{
+		f = fopen(s_archivePak.c_str(), "rb");
+		if (f && fseek(f, (long)entry.offset, SEEK_SET) == 0)
+			fileSize = (long)entry.size;
+		else
+		{
+			if (f)
+				fclose(f);
+			f = nullptr;
+		}
+	}
 	if (!f)
-		return nullptr;
-	fseek(f, 0, SEEK_END);
-	long fileSize = ftell(f);
-	fseek(f, 0, SEEK_SET);
+	{
+		f = fopen(path, "rb");
+		if (!f)
+			return nullptr;
+		fseek(f, 0, SEEK_END);
+		fileSize = ftell(f);
+		fseek(f, 0, SEEK_SET);
+	}
 	char* raw = (char*)malloc(fileSize + 1);
 	if (!raw)
 	{
@@ -65,12 +216,6 @@ static LightLock s_lock = 1;         // unlocked (LightLock_Init sets 1)
 // (zlib's -4 and the cell missing). Readers only read forward (fseek ahead is a skip)
 namespace
 {
-#ifdef __LARGE64_FILES
-typedef _off64_t ZOff;
-#else
-typedef off_t ZOff;
-#endif
-
 struct ZStream
 {
 	FILE* raw;
@@ -157,55 +302,136 @@ int zstreamClose(void* cookie)
 }
 #endif
 
-FILE* zopen(const char* path)
-{
 #ifdef __3DS__
+// A FILE over one entry of data.pak: reads stop at the entry's end, so a reader cannot run into the next file
+struct ArchiveRange
+{
+	FILE* raw;
+	u64 start, size, pos;
+};
+
+ssize_t archiveRangeRead(void* cookie, char* buf, size_t n)
+{
+	ArchiveRange* r = (ArchiveRange*)cookie;
+	if (r->pos >= r->size || n == 0)
+		return 0;
+	if (n > r->size - r->pos)
+		n = (size_t)(r->size - r->pos);
+	if (fseek(r->raw, (long)(r->start + r->pos), SEEK_SET) != 0)
+		return 0;
+	size_t got = fread(buf, 1, n, r->raw);
+	r->pos += got;
+	return (ssize_t)got;
+}
+
+int archiveRangeSeek(void* cookie, ZOff* off, int whence)
+{
+	ArchiveRange* r = (ArchiveRange*)cookie;
+	ZOff target = whence == SEEK_SET ? *off : whence == SEEK_CUR ? (ZOff)r->pos + *off : (ZOff)r->size + *off;
+	if (target < 0)
+		target = 0;
+	if (target > (ZOff)r->size)
+		target = (ZOff)r->size;
+	r->pos = (u64)target;
+	*off = target;
+	return 0;
+}
+
+int archiveRangeClose(void* cookie)
+{
+	ArchiveRange* r = (ArchiveRange*)cookie;
+	fclose(r->raw);
+	free(r);
+	return 0;
+}
+
+static FILE* archiveRangeOpen(const ArchiveEntry& e)
+{
+	FILE* raw = fopen(s_archivePak.c_str(), "rb");
+	if (!raw || fseek(raw, (long)e.offset, SEEK_SET) != 0)
 	{
-		FILE* raw = fopen(path, "rb");
-		if (!raw)
-			return nullptr;
-		char head[8];
-		if (fread(head, 1, 8, raw) == 8 && memcmp(head, "MWZ1", 4) == 0)
-		{
-			ZStream* s = (ZStream*)malloc(sizeof(ZStream));
-			if (!s)
-			{
-				fclose(raw);
-				return nullptr;
-			}
-			memset(&s->z, 0, sizeof(s->z));
-			s->raw = raw;
-			memcpy(&s->size, head + 4, 4);
-			s->pos = 0;
-			s->end = false;
-			s->output.reset();
-			if (inflateInit(&s->z) != Z_OK)
-			{
-				fclose(raw);
-				free(s);
-				return nullptr;
-			}
-			cookie_io_functions_t io = { zstreamRead, nullptr, zstreamSeek, zstreamClose };
-			FILE* f = fopencookie(s, "rb", io);
-			if (!f)
-			{
-				zstreamClose(s);
-				return nullptr;
-			}
-			// Unbuffered: stdio's buffer would read ahead of what the caller has, and its fseek then asks this stream
-			// to go back (a cookie stream gets no in-buffer seek), which it can't
-			setvbuf(f, nullptr, _IONBF, 0);
-			LightLock_Lock(&s_lock);
-			s_streams++;
-			LightLock_Unlock(&s_lock);
-			return f;
-		}
-		// stored as it is: the file itself
-		fseek(raw, 0, SEEK_SET);
-		return raw;
+		if (raw)
+			fclose(raw);
+		return nullptr;
 	}
+	ArchiveRange* r = (ArchiveRange*)malloc(sizeof(ArchiveRange));
+	if (!r)
+	{
+		fclose(raw);
+		return nullptr;
+	}
+	r->raw = raw;
+	r->start = e.offset;
+	r->size = e.size;
+	r->pos = 0;
+	cookie_io_functions_t io = { archiveRangeRead, nullptr, archiveRangeSeek, archiveRangeClose };
+	FILE* f = fopencookie(r, "rb", io);
+	if (!f)
+	{
+		archiveRangeClose(r);
+		return nullptr;
+	}
+	setvbuf(f, nullptr, _IONBF, 0);
+	return f;
+}
+
+// A raw file (loose or an archive range) as a zopen stream: inflate an MWZ1 header, else the file itself
+static FILE* rawStream(FILE* raw)
+{
+	if (!raw)
+		return nullptr;
+	char head[8];
+	if (fread(head, 1, 8, raw) == 8 && memcmp(head, "MWZ1", 4) == 0)
+	{
+		ZStream* s = (ZStream*)malloc(sizeof(ZStream));
+		if (!s)
+		{
+			fclose(raw);
+			return nullptr;
+		}
+		memset(&s->z, 0, sizeof(s->z));
+		s->raw = raw;
+		memcpy(&s->size, head + 4, 4);
+		s->pos = 0;
+		s->end = false;
+		s->output.reset();
+		if (inflateInit(&s->z) != Z_OK)
+		{
+			fclose(raw);
+			free(s);
+			return nullptr;
+		}
+		cookie_io_functions_t io = { zstreamRead, nullptr, zstreamSeek, zstreamClose };
+		FILE* f = fopencookie(s, "rb", io);
+		if (!f)
+		{
+			zstreamClose(s);
+			return nullptr;
+		}
+		setvbuf(f, nullptr, _IONBF, 0);
+		LightLock_Lock(&s_lock);
+		s_streams++;
+		LightLock_Unlock(&s_lock);
+		return f;
+	}
+	fseek(raw, 0, SEEK_SET);
+	return raw;
+}
 #endif
 
+FILE* zopen(const char* path)
+{
+#if defined(__3DS__)
+	ArchiveEntry e;
+	if (archiveLookup(path, e))
+	{
+		FILE* raw = archiveRangeOpen(e);
+		if (raw)
+			return rawStream(raw);
+	}
+	FILE* raw = fopen(path, "rb");
+	return rawStream(raw);
+#else
 	size_t size = 0;
 	char* data = zreadAll(path, &size);
 	if (!data)
@@ -220,6 +446,7 @@ FILE* zopen(const char* path)
 	s_buffers[f] = data;
 	LightLock_Unlock(&s_lock);
 	return f;
+#endif
 }
 
 void zclose(FILE* f)

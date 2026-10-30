@@ -211,8 +211,13 @@ bool skeletonsLoad(const char* path)
 	struct stat st;
 	int files = 0;
 	char one[256];
-	while (snprintf(one, sizeof(one), "%s/skel_%d.skl", dir.c_str(), files), stat(one, &st) == 0)
+	for (;;)
+	{
+		snprintf(one, sizeof(one), "%s/skel_%d.skl", dir.c_str(), files);
+		if (stat(one, &st) != 0 && !zexists(one))
+			break;
 		files++;
+	}
 	if (files > 0)
 	{
 		LightLock_Init(&s_skelLock);

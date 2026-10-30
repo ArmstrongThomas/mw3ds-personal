@@ -184,10 +184,13 @@ bool Engine::prepare()
 	rendererInit();
 	uiInit();
 	// A CIA with its data inside uses that (whatever an older copy left on the card); the dev build and
-	// the program-only CIA read the card's
-	dataDir = romfs && stat("romfs:/data/game.json", &st) == 0 ? kRomfsDataDir
-		: stat(kSdDataDir, &st) == 0 ? kSdDataDir : kRomfsDataDir;
-	logf("romfs %s, data dir %s", romfs ? "mounted" : "absent", dataDir);
+	// the program-only CIA read the card's. A data pack is data.pak + data.idx (no loose game.json).
+	bool romfsData = stat("romfs:/data/game.json", &st) == 0 || stat("romfs:/data/data.idx", &st) == 0;
+	bool sdData = stat("sdmc:/3ds/mw3ds/data/game.json", &st) == 0 || stat("sdmc:/3ds/mw3ds/data/data.idx", &st) == 0;
+	dataDir = romfsData ? kRomfsDataDir : sdData ? kSdDataDir : kRomfsDataDir;
+	zarchiveMount(dataDir);
+	logf("romfs %s, data dir %s%s", romfs ? "mounted" : "absent", dataDir,
+		zarchiveMounted() ? " (data pack)" : "");
 	int maxTex = dataMaxTex(dataDir);
 	logf("data: textures up to %d texels%s", maxTex, maxTex ? "" : " (not recorded: converted before max_tex)");
 	// (not for a scripted test run: the native Old 3DS suite runs the New 3DS's data on purpose)

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <zlib.h>
+#include "components/files/zfile.hpp"
 
 // Sounds and textures live in 64 subfolders chosen by a checksum of the file name (the SD card's
 // file system scans a whole folder to open or create a file; thousands in one folder crawl).
@@ -23,10 +24,7 @@ inline std::string shardedPath(const std::string& dataDir, const char* folder, c
 inline std::string cellPath(const std::string& dataDir, const std::string& stem, const char* ext)
 {
 	std::string p = shardedPath(dataDir, "cells", stem) + ext;
-	if (FILE* f = fopen(p.c_str(), "rb"))
-	{
-		fclose(f);
+	if (zexists(p.c_str()))
 		return p;
-	}
 	return dataDir + "/cells/" + stem + ext;
 }
