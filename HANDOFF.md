@@ -51,16 +51,17 @@ a separate personal repository, preserving normal upstream merging. Publishing r
   flight), the selected spell's cast/bolt/hit/area visuals, and every blood splat a hit can throw are cached when the
   equipment or spell changes or at startup. Ready, draw, shot, first cast and the first successful hit no longer stop
   under "Updating equipment..." in normal play; the blood pieces are pinned from the VFX trimmer.
-- Optional SD data pack: `tools/build/make_pak.py` packs the converted cell/actor/first-person/texture/art/UI files and
-  game JSON into `data.pak` with a sorted `data.idx` (FNV-1a path hash -> offset/size). The engine mounts it at startup
-  and reads those paths with one file open each, instead of making the 3DS FAT driver scan thousands of loose files.
-  The ~0.5 MB index is loaded into RAM once. Sound, music and movies stay loose; no 1 GB CIA is needed for data updates.
+- Optional SD data pack: `tools/build/make_pak.py` packs the converted cell/actor/first-person/texture/art/UI files into
+  `data.pak` with a sorted `data.idx` (FNV-1a path hash -> offset/size). The engine mounts it at startup and reads those
+  paths with one file open each, instead of making the 3DS FAT driver scan thousands of loose files. The ~0.5 MB index
+  is loaded into RAM once. Sound, music, movies, and the small root metadata (game*.json, maps, distant.bin) stay loose;
+  no 1 GB CIA is needed for data updates.
 
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `e2b6e9a22cf2a1eb8b16114736978a4facc43f2b483ce608c918eeab77480493`
-(2,399,184 bytes).
+`mw3ds-personal.3dsx`. SHA-256: `4d1de9e2d41457c69d6f537133e791c3e16c38c88b5106374ef59ca58508d447`
+(2,399,392 bytes).
 Both native and devkitPro builds pass. The blood-preload, TCL, save/load rework and full save-preview builds were sent
 over 3dslink on October 26; this data-pack build is built and tested but not sent. New 3DS XL feedback on the earlier
 build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one load, then that
@@ -98,17 +99,29 @@ The program-only CIA can read one indexed pack from the SD card:
 python tools/build/make_pak.py --data out/data-tribunal --out sd/3ds/mw3ds/data/data.pak
 ```
 
-That writes `data.pak` and `data.idx` beside each other. Copy those two files to `sdmc:/3ds/mw3ds/data/`, and keep
-`snd/`, `music/` and `movies/` there as loose folders (the packer leaves them loose on purpose: they stream, and the
-sound code opens them directly). The loose `cells/`, `fp/`, `tex/`, `art/`, `ui/` folders and `game*.json` are then
-redundant on the card; the pack is read in preference to them. Rebuilding after a reconvert takes about 90 seconds and
-does not rebuild or reinstall the CIA.
+That writes `data.pak` and `data.idx` beside each other. For the Tribunal data it is 969 MB of 20,487 files plus a
+480 KB index, and takes about 90 seconds. Copy those two files to `sdmc:/3ds/mw3ds/data/`, and keep `snd/`, `music/`,
+`movies/` and the small root files (`game*.json`, `map*.t3x`, `distant.bin`) there as loose files. The packer leaves
+those loose on purpose: the root files are small and opened before the first cell, and reading them from the pack made
+startup slower on the emulator. The loose `cells/`, `fp/`, `tex/`, `art/` and `ui/` folders are redundant on the card;
+the pack is read in preference to them. Rebuilding after a reconvert takes about 90 seconds and does not rebuild or
+reinstall the CIA.
 
-`--all` also packs sound/music/movies, but the audio reader still uses direct `fopen`, so do not remove those loose
-folders until the audio path is archive-aware. The packer's default leaves `music`, `movies`, `sound` and `snd` loose.
+`--pack-root` also packs the root files; `--all` also packs sound/music/movies, but the audio reader still uses direct
+`fopen`, so do not remove audio folders until that path is archive-aware. The default leaves `music`, `movies`, `sound`,
+`snd` and root files loose.
 
-The native and isolated Azahar builds loaded the whole Tribunal island through the pack (`feat-save-preview` with
-`--data build/native/pack`); real-hardware load timing and the speed difference from loose files are still unmeasured.
+### Azahar baseline (3 runs each, same final build)
+
+| Measured from log | Loose SD layout | Data pack | Difference |
+| --- | ---: | ---: | ---: |
+| `game data` startup | 23,228 ms | 23,225 ms | ~0 |
+| Nine cell loads, summed | 13,303 ms | 12,217 ms | **-1,086 ms (-8.2%)** |
+
+Each run repeated within 1–3 ms. The pack helps the cell/actor/texture opens (the first big cell dropped from 1,801 to
+1,604 ms, the 6.4 s cell to 5.8 s) and leaves startup unchanged once root metadata is loose. Azahar's host-backed SD is
+much faster at directory scans than the console's FAT driver, so this is a lower bound; real-hardware timing is still
+unmeasured.
 
 ## Outstanding checks and limits
 

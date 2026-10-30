@@ -8,7 +8,9 @@ instead of opening thousands of loose files: the 3DS's FAT driver scans a whole 
 open, which is what makes the small-CIA + SD-folder setup slow.
 
 Audio and movies stay loose by default (few large files; they stream, and the sound code opens them
-itself), so keep sound/, music/ and movies/ on the card. --all packs them too.
+itself). Files at the data root (game*.json, maps, distant.bin) stay loose too: they are small and
+opened before the first cell, and reading them from the pack made startup slower on the emulator.
+--pack-root packs them as well; --all also packs sound/music/movies.
 """
 import argparse
 import struct
@@ -37,6 +39,9 @@ def main() -> int:
     ap.add_argument("--data", default="out/data", help="converted data folder (default out/data)")
     ap.add_argument("--out", default=None, help="the .pak to write (default <data>/data.pak)")
     ap.add_argument("--all", action="store_true", help="also pack music, movies and sound")
+    ap.add_argument("--pack-root", action="store_true",
+                    help="also pack files at the data root (game*.json, maps, distant.bin); by default they stay "
+                         "loose, which keeps startup fast")
     ap.add_argument("--leave", default=",".join(DEFAULT_LEAVE),
                     help="comma-separated top-level folders to leave loose (default music,movies,sound,snd)")
     a = ap.parse_args()
@@ -55,6 +60,8 @@ def main() -> int:
             continue
         rel = p.relative_to(data).as_posix()
         if rel in ("data.pak", "data.idx") or p == pak or p == idx:
+            continue
+        if not a.pack_root and "/" not in rel:
             continue
         if leave and rel.split("/", 1)[0] in leave:
             continue

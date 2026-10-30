@@ -32,6 +32,8 @@ struct ArchiveRecord { u64 hash, offset, size; };
 static_assert(sizeof(ArchiveRecord) == 24, "data.idx records are 24 bytes");
 static std::string s_archiveRoot, s_archivePak;
 static std::vector<ArchiveRecord> s_archive;
+static FILE* s_archiveData = nullptr;
+static LightLock s_archiveReadLock = 1;
 
 static u64 archiveHash(const std::string& path)
 {
@@ -46,6 +48,9 @@ static u64 archiveHash(const std::string& path)
 
 static void archiveClose()
 {
+	if (s_archiveData)
+		fclose(s_archiveData);
+	s_archiveData = nullptr;
 	s_archive.clear();
 	s_archiveRoot.clear();
 	s_archivePak.clear();
@@ -87,6 +92,12 @@ void zarchiveMount(const char* dataDir)
 	s_archive = std::move(records);
 	s_archiveRoot = root;
 	s_archivePak = root + "/data.pak";
+	s_archiveData = fopen(s_archivePak.c_str(), "rb");
+	if (!s_archiveData)
+	{
+		archiveClose();
+		return;
+	}
 	logf("data pack: %s (%u entries)", s_archivePak.c_str(), (unsigned)s_archive.size());
 }
 
@@ -148,38 +159,39 @@ bool zexists(const char* path)
 
 char* zreadAll(const char* path, size_t* sizeOut)
 {
-	FILE* f = nullptr;
-	long fileSize = 0;
+	char* raw = nullptr;
+	size_t got = 0;
 	ArchiveEntry entry;
 	if (archiveLookup(path, entry))
 	{
-		f = fopen(s_archivePak.c_str(), "rb");
-		if (f && fseek(f, (long)entry.offset, SEEK_SET) == 0)
-			fileSize = (long)entry.size;
-		else
+		// One open handle for whole-file reads (game JSON, cells): reopening the 1 GB pack for each one was
+		// several hundred milliseconds at startup on the emulator.
+		LightLock_Lock(&s_archiveReadLock);
+		if (s_archiveData && fseek(s_archiveData, (long)entry.offset, SEEK_SET) == 0)
 		{
-			if (f)
-				fclose(f);
-			f = nullptr;
+			raw = (char*)malloc((size_t)entry.size + 1);
+			if (raw)
+				got = fread(raw, 1, (size_t)entry.size, s_archiveData);
 		}
+		LightLock_Unlock(&s_archiveReadLock);
 	}
-	if (!f)
+	if (!raw)
 	{
-		f = fopen(path, "rb");
+		FILE* f = fopen(path, "rb");
 		if (!f)
 			return nullptr;
 		fseek(f, 0, SEEK_END);
-		fileSize = ftell(f);
+		long fileSize = ftell(f);
 		fseek(f, 0, SEEK_SET);
-	}
-	char* raw = (char*)malloc(fileSize + 1);
-	if (!raw)
-	{
+		raw = (char*)malloc(fileSize + 1);
+		if (!raw)
+		{
+			fclose(f);
+			return nullptr;
+		}
+		got = fread(raw, 1, fileSize, f);
 		fclose(f);
-		return nullptr;
 	}
-	size_t got = fread(raw, 1, fileSize, f);
-	fclose(f);
 	raw[got] = 0;
 	if (got < 8 || memcmp(raw, "MWZ1", 4) != 0)
 	{
