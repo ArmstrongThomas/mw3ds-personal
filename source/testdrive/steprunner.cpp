@@ -57,7 +57,8 @@ void runScriptedStep(Session* session, ScriptedSteps& autoinput, size_t& inputIn
 	if (first && s.layout >= 0)
 	{
 		g_testLayout = g_controlLayout = s.layout;
-		logf("test: controls %s", s.layout == CONTROLS_GOLDENEYE ? "goldeneye" : s.layout == CONTROLS_XBOX ? "xbox" : "classic");
+		static const char* kNames[4] = { "xbox", "classic", "goldeneye", "stylus" };
+		logf("test: controls %s", kNames[s.layout]);
 	}
 	if (first && s.frameCap >= 0)
 		g_testFrameCap = s.frameCap == 1;
@@ -77,7 +78,14 @@ void runScriptedStep(Session* session, ScriptedSteps& autoinput, size_t& inputIn
 		in.moveX = s.moveX;
 		in.moveY = s.moveY;
 		in.lookX = s.lookX * lookScale();
-		stylusInput(in, g_touchLeftHanded, held, down);
+		// (the old look-pad layout's buttons, through the same action flags)
+		in.activate = down & KEY_A;
+		in.attack = held & KEY_R;
+		in.cast = down & KEY_L;
+		in.readyToggle = down & KEY_X;
+		in.jump = down & KEY_Y;
+		in.up = held & (KEY_Y | KEY_ZR);
+		in.sneak = in.down = held & (KEY_B | KEY_ZL);
 	}
 	else if (g_controlLayout == CONTROLS_GOLDENEYE)
 	{
@@ -91,6 +99,17 @@ void runScriptedStep(Session* session, ScriptedSteps& autoinput, size_t& inputIn
 		goldenEyeInput(state, ge, s.moveX, s.moveY, held, down, released, dt);
 		ge.jump |= s.jump && first;
 		in = ge;
+	}
+	else if (stylusLayout())
+	{
+		// (the step's stick is the Circle Pad, its keys the buttons, through that layout)
+		PlayerInput st = {};
+		st.quick = -1;
+		st.moveX = s.moveX;
+		st.moveY = s.moveY;
+		stylusInput(st, held, down);
+		st.jump |= s.jump && first;
+		in = st;
 	}
 	in = invertLook(in);
 	if (g_gyroAim > 0)
@@ -215,9 +234,12 @@ void runScriptedStep(Session* session, ScriptedSteps& autoinput, size_t& inputIn
 			logf("drive: FAIL cast %s: not a known spell or a carried item (LEGIT)", s.cast.c_str());
 		else
 		{
-			// the id as given when there is such a spell (or item), else with '_' as spaces
+			// the id when there is such a spell (or item), lower case as spells are kept (the side-by-side's
+			// CAST:BM_summonwolf selected nothing), else with '_' as spaces
 			std::string sel = s.cast;
-			if (sel.compare(0, 5, "item:") != 0 && !session->w.game.spells.count(lower(sel)))
+			if (sel.compare(0, 5, "item:") != 0 && session->w.game.spells.count(lower(sel)))
+				sel = lower(sel);
+			else if (sel.compare(0, 5, "item:") != 0)
 			{
 				std::string sp = lower(sel);
 				std::replace(sp.begin(), sp.end(), '_', ' ');
@@ -265,6 +287,8 @@ void runScriptedStep(Session* session, ScriptedSteps& autoinput, size_t& inputIn
 	}
 	// SLEEPUNTIL:h: whole hours from now to the next time the clock reads h (a full day when it already does)
 	int sleepHours = s.sleep;
+	if (first && s.sleepTo >= 0)
+		sleepHours = ((s.sleepTo % 24) - (int)floorf(fmodf(session->w.gameHour, 24.0f)) + 24) % 24;
 	if (first && s.sleepUntil >= 0)
 	{
 		int now = (int)floorf(fmodf(session->w.gameHour, 24.0f));

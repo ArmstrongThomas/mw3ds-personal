@@ -22,7 +22,8 @@
 // own screen (options, audio, display, look, touch), so B and Close leave from any of them. 3D has no setting: the 3D slider
 // alone turns it on and off
 static const Screen kOptionTabs[5] = { SCR_OPTIONS, SCR_AUDIO, SCR_DISPLAY, SCR_LOOK, SCR_TOUCH };
-static const int kControlsButtonsFocus = 6;   // Controls' Layout button, where the button list's Close comes back to
+// Controls' Layout button, where the button list's Close comes back to (the stylus layout's tab has a bar fewer)
+static int controlsButtonsFocus() { return stylusLayout() ? 5 : 6; }
 
 void Session::drawOptions()
 {
@@ -248,14 +249,20 @@ void Session::drawOptions()
 		if (choice(50, "Stylus look", onOff(g_touchLook)))
 		{
 			g_touchLook = !g_touchLook;
-			notify(g_touchLook ? "Stylus look on: slide on the look pad. Lift to reposition." : "Stylus look off.");
+			changed = true;
 		}
 		snprintf(text, sizeof(text), "%.2fx", g_touchSensitivity / 100.0f);
-		bar(80, "Stylus sensitivity", text, g_touchSensitivity, kTouchMinPct, kTouchMaxPct, kTouchStepPct);
+		bar(80, "Stylus sensitivity", text, g_touchSensitivity, 50, 200, 10);
 		if (choice(118, "Invert stylus", onOff(g_touchInvertY)))
+		{
 			g_touchInvertY = !g_touchInvertY;
+			changed = true;
+		}
 		if (choice(146, "Stylus hand", g_touchLeftHanded ? "Left" : "Right"))
+		{
 			g_touchLeftHanded = !g_touchLeftHanded;
+			changed = true;
+		}
 		uiText(10, 176, 0.42f, col::text, g_touchLeftHanded ? "ABXY: move. R: attack. ZR: sneak."
 			: "Circle Pad: move. L: attack. R: sneak.");
 		uiText(10, 192, 0.42f, col::text, "Slide to look; lift to reposition.");
@@ -278,14 +285,25 @@ void Session::drawOptions()
 	{
 		// Look speed (the C-stick, the D-pad and the GoldenEye pad while aiming: one bar, they were two) and the GoldenEye
 		// pad's turn while walking (0.50x to 2.00x), the sticks' dead zone (10% to 35% of a full push: a stick that rests
-		// a little off centre kept walking or turning the view), Invert and Gyro aim
-		snprintf(text, sizeof(text), "%.2fx", g_lookSpeed / 100.0f);
-		bar(50, "Look speed (sticks, D-pad, aiming)", text, g_lookSpeed, kLookMinPct, kLookMaxPct, kLookStepPct);
-		snprintf(text, sizeof(text), "%.2fx", g_geTurnSpeed / 100.0f);
-		bar(84, "GoldenEye turn (walking)", text, g_geTurnSpeed, kGeTurnMinPct, kGeTurnMaxPct, kLookStepPct);
+		// a little off centre kept walking or turning the view), Invert and Gyro aim. The stylus layout, where no stick
+		// looks: how far a slide turns, the dead zone, Invert and Gyro aim (its glass buttons are switched on its button list)
+		bool stylus = stylusLayout();
+		if (stylus)
+		{
+			snprintf(text, sizeof(text), "%.2fx", g_stylusSpeed / 100.0f);
+			bar(50, "Stylus speed (sliding to look)", text, g_stylusSpeed, kStylusMinPct, kStylusMaxPct, kLookStepPct);
+		}
+		else
+		{
+			snprintf(text, sizeof(text), "%.2fx", g_lookSpeed / 100.0f);
+			bar(50, "Look speed (sticks, D-pad, aiming)", text, g_lookSpeed, kLookMinPct, kLookMaxPct, kLookStepPct);
+			snprintf(text, sizeof(text), "%.2fx", g_geTurnSpeed / 100.0f);
+			bar(84, "GoldenEye turn (walking)", text, g_geTurnSpeed, kGeTurnMinPct, kGeTurnMaxPct, kLookStepPct);
+		}
 		snprintf(text, sizeof(text), "%d%%", g_stickZonePct);
-		bar(118, "Stick dead zone", text, g_stickZonePct, kStickZoneMinPct, kStickZoneMaxPct, kStickZoneStepPct);
-		if (choice(154, "Invert look", onOff(g_invertY)))
+		bar(stylus ? 84 : 118, "Stick dead zone", text, g_stickZonePct, kStickZoneMinPct, kStickZoneMaxPct, kStickZoneStepPct);
+		float row = stylus ? 120 : 154;
+		if (choice(row, "Invert look", onOff(g_invertY)))
 		{
 			g_invertY = !g_invertY;
 			notify(g_invertY ? "Up on the stick now looks down." : "Up on the stick looks up.");
@@ -293,7 +311,7 @@ void Session::drawOptions()
 		// Gyro aim: turning the console turns the view (off, half, as far, twice as far as it turned)
 		static const int kGyroSteps[4] = { 0, 50, 100, 200 };
 		snprintf(text, sizeof(text), g_gyroAim > 0 ? "%.1fx" : "Off", g_gyroAim / 100.0f);
-		if (int d = choice(180, "Gyro aim", text))
+		if (int d = choice(row + 26, "Gyro aim", text))
 		{
 			int k = 0;
 			while (k < 3 && kGyroSteps[k] != g_gyroAim)
@@ -305,13 +323,14 @@ void Session::drawOptions()
 			g_gyroCalibrate = g_gyroAim > 0;
 			notify(g_gyroAim > 0 ? "Gyro aim on: lay the 3DS down for 2 seconds to calibrate, then turn it to aim." : "Gyro aim off.");
 		}
-		// Layout: the button list, what each button does in the layout in use (Y there switches Xbox, classic, GoldenEye)
+		// Layout: the button list, what each button does in the layout in use (Y there switches Xbox, classic, GoldenEye,
+		// stylus)
 		b = buttons(208, 28, { "Default", "Layout", w.game.gmstLabel("sclose", "Close") });
 		closing = b == 2;
 		if (b == 0)
 		{
 			g_lookSpeed = kLookDefaultPct;
-			g_geTurnSpeed = 100;
+			g_geTurnSpeed = g_stylusSpeed = 100;
 			g_stickZonePct = kStickZoneDefaultPct;
 			g_invertY = false;
 			g_gyroAim = 0;
@@ -351,40 +370,10 @@ void Session::drawOptions()
 // What each button does
 void Session::drawControls()
 {
-	if (g_touchLook || touchControlsHelp)
-	{
-		header(g_touchLeftHanded ? "Stylus controls (left hand)" : "Stylus controls (right hand)");
-		const char* rows[][2] = {
-			{ "Move", g_touchLeftHanded ? "X forward, B backward" : "Circle Pad" },
-			{ "Strafe", g_touchLeftHanded ? "Y left, A right" : "Circle Pad left / right" },
-			{ "Look", "Slide on the look pad" },
-			{ "Attack", g_touchLeftHanded ? "Hold R, release to strike" : "Hold L, release to strike" },
-			{ "Activate", g_touchLeftHanded ? "Tap Use" : "D-pad up / tap Use" },
-			{ "Cast", g_touchLeftHanded ? "Tap Cast" : "D-pad right / tap Cast" },
-			{ "Jump / swim up", g_touchLeftHanded ? "Tap / hold Jump" : "D-pad down / tap Jump" },
-			{ "Ready weapon", g_touchLeftHanded ? "Tap Ready" : "D-pad left / tap Ready" },
-			{ "Sneak / swim down", "Tap Sneak to toggle" },
-			{ "First / third", "SELECT" }, { "Game menu", "START" },
-			{ "Quick keys / menus", "Tap below the look pad" }
-		};
-		for (int i = 0; i < 12; i++)
-		{
-			uiText(10, 30 + i * 14, 0.42f, col::header, rows[i][0]);
-			uiText(140, 30 + i * 14, 0.42f, col::text, rows[i][1]);
-		}
-		if (uiIn().down & KEY_LEFT) focus = 0;
-		if (uiIn().down & KEY_RIGHT) focus = 1;
-		if (uiButton(4, 208, 154, 28, "Swap stylus hand", focus == 0))
-		{
-			g_touchLeftHanded = !g_touchLeftHanded;
-			saveSettings();
-		}
-		if (uiButton(162, 208, 154, 28, w.game.gmst("sclose", "Close"), focus == 1) || (uiIn().down & KEY_B))
-			openScreen(SCR_TOUCH);
-		return;
-	}
 	bool xbox = g_controlLayout == CONTROLS_XBOX, goldenEye = g_controlLayout == CONTROLS_GOLDENEYE;
-	header(xbox ? "Controls (Xbox layout)" : goldenEye ? "Controls (GoldenEye layout)" : "Controls (classic layout)");
+	bool stylus = stylusLayout();
+	header(xbox ? "Controls (Xbox layout)" : goldenEye ? "Controls (GoldenEye layout)" : stylus ? "Controls (stylus layout)"
+		: "Controls (classic layout)");
 	static const char* kXbox[][2] = {
 		{ "Circle Pad / C-Stick", "Move (pushed far: run) / look" }, { "A", "Activate: talk, open, take" },
 		{ "R (hold, release)", "Wind up, strike" }, { "X", "Ready / put away the weapon" }, { "L", "Cast the selected spell" },
@@ -406,25 +395,47 @@ void Session::drawControls()
 		{ "Y", "Jump (swim up in water)" }, { "B", "Sneak on / off" }, { "SELECT", "First / third person" },
 		{ "D-Pad", "Left / right: strafe; up / down: look" }, { "START", "Menu: save, rest, options" },
 		{ "Touch screen", "Menus, quick keys" } };
+	// The stylus in the right hand looks; the left hand moves and fights (stylusInput)
+	// GoldenEye's buttons, the stylus looking; the glass buttons over the map are the same ones (stylusInput)
+	static const char* kStylus[][2] = {
+		{ "Circle Pad", "Move (pushed far: run)" }, { "Stylus (slide)", "Look" },
+		{ "A", "Activate: talk, open, take" }, { "R (hold, release)", "Wind up, strike" },
+		{ "L", "Cast the selected spell" }, { "X", "Ready / put away the weapon" },
+		{ "Y", "Jump (held: swim up)" }, { "B (hold)", "Sneak" }, { "SELECT", "First / third person" },
+		{ "D-Pad", "Strafe; look up / down" }, { "START", "Menu: save, rest, options" },
+		{ "Map's glass buttons", "The same (B: sneak on / off)" },
+		{ "C-Stick, ZL, ZR", "If there: look; sneak; rise" } };
 	float y = 30;
 	int n = xbox ? sizeof(kXbox) / sizeof(kXbox[0]) : goldenEye ? sizeof(kGoldenEye) / sizeof(kGoldenEye[0])
-		: sizeof(kClassic) / sizeof(kClassic[0]);
+		: stylus ? sizeof(kStylus) / sizeof(kStylus[0]) : sizeof(kClassic) / sizeof(kClassic[0]);
 	for (int i = 0; i < n; i++)
 	{
-		const char* const* l = xbox ? kXbox[i] : goldenEye ? kGoldenEye[i] : kClassic[i];
+		const char* const* l = xbox ? kXbox[i] : goldenEye ? kGoldenEye[i] : stylus ? kStylus[i] : kClassic[i];
 		uiText(14, y, 0.42f, col::header, l[0]);
 		uiText(140, y, 0.42f, col::text, l[1]);
 		y += 13.5f;
 	}
-	// Y: the next layout (Xbox, classic, GoldenEye); A / B: back to the Controls tab, on its Layout button
-	if (uiButton(4, 208, 154, 28, xbox ? "Y: Use classic" : goldenEye ? "Y: Use Xbox" : "Y: Use GoldenEye") || (uiIn().down & KEY_Y))
+	// Y: the next layout (Xbox, classic, GoldenEye, stylus); A / B: back to the Controls tab, on its Layout button
+	static const int kNext[4] = { CONTROLS_CLASSIC, CONTROLS_GOLDENEYE, CONTROLS_STYLUS, CONTROLS_XBOX };
+	static const char* kUse[4] = { "Y: Use classic", "Y: Use GoldenEye", "Y: Use stylus", "Y: Use Xbox" };
+	int k = g_controlLayout >= 0 && g_controlLayout < 4 ? g_controlLayout : 0;
+	// (the stylus layout's list: X switches its glass buttons over the minimap on or off, between the two)
+	float bw = stylus ? 102 : 154;
+	if (uiButton(4, 208, bw, 28, kUse[k]) || (uiIn().down & KEY_Y))
 	{
-		g_controlLayout = xbox ? CONTROLS_CLASSIC : goldenEye ? CONTROLS_XBOX : CONTROLS_GOLDENEYE;
+		g_controlLayout = kNext[k];
 		saveSettings();
 	}
-	else if (uiButton(162, 208, 154, 28, w.game.gmst("sclose", "Close"), true) || (uiIn().down & (KEY_A | KEY_B)))
+	else if (stylus && (uiButton(110, 208, 102, 28, g_stylusButtons ? "X: Buttons on" : "X: Buttons off")
+		|| (uiIn().down & KEY_X)))
+	{
+		g_stylusButtons = !g_stylusButtons;
+		saveSettings();
+		notify(g_stylusButtons ? "The glass buttons show over the map." : "No buttons over the map: the stylus only looks there.");
+	}
+	else if (uiButton(316 - bw, 208, bw, 28, w.game.gmst("sclose", "Close"), true) || (uiIn().down & (KEY_A | KEY_B)))
 	{
 		openScreen(SCR_LOOK);
-		focus = kControlsButtonsFocus;
+		focus = controlsButtonsFocus();
 	}
 }

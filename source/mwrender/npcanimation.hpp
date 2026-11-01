@@ -6,6 +6,8 @@
 #include <array>
 #include <memory>
 
+#include "components/misc/atom.hpp"
+
 #include "mwrender/animation.hpp"
 #include "mwrender/viewmodel.hpp"
 
@@ -78,8 +80,11 @@ struct PlayerBody
 	bool followCut = false;                       // a blow's follow-through was chosen at its hit
 	bool stanceOut = false;                       // the walk / idle was chosen with the weapon out
 	bool swimOut = false;                         // ... and in the water (actorPlay's swimming groups)
+	bool wolf = false;                            // in wolf form: the werewolf's own model (rebuildWolf), its textures the cell's
+	int wolfCell = -1;                            // ... built in this cell
 
 	void rebuild(World& w, bool weaponOut, bool preview = false);
+	void rebuildWolf(World& w);      // (re)dress when race, head, hair or equipment changed
 	// Animation from what the player does; place at feet, facing yaw
 	void update(World& w, float dt, float speed, bool swimming, bool sneaking, bool weaponOut, const BodyAct& act);
 	const char* playing() const;                  // the group being played ("" when none)
@@ -89,4 +94,4 @@ struct PlayerBody
 };
 
 // The heads / hairs a race and sex can choose from (body ids), for character creation
-const std::vector<std::pair<std::string, std::string>>* playerHeadChoices(const World& w, bool hair);
+const std::vector<std::pair<Atom, Atom>>* playerHeadChoices(const World& w, bool hair);

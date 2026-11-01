@@ -29,6 +29,7 @@ from PIL import Image
 
 import envfile  # noqa: F401  (loads .env)
 from mwfiles import OVERLAYS, content_key
+from texpad import CREATURE_CAP, PAD_VERSION, actor_texture_islands, creature_textures, pad_islands
 
 # Converted data goes here (MW3DS_OUT overrides it, e.g. out/world for a whole-island trial run)
 OUT = Path(os.environ.get("MW3DS_OUT") or Path(__file__).resolve().parents[2] / "out" / "data")
@@ -156,8 +157,8 @@ class TextureSet:
     def request_shape(self, s, alpha):
         return self.request(s["tex"], texels_needed(world_per_repeat(s["pos"], s["uv"], s["tris"])), alpha)
 
-    def limit(self, texels):
-        return max(MIN_SIZE, min(self.max_size, pow2_ceil(texels)))
+    def limit(self, texels, cap=0):
+        return max(MIN_SIZE, min(cap or self.max_size, pow2_ceil(texels)))
 
     def encode(self):
         cache = json.loads(CACHE.read_text()) if CACHE.exists() and not self.force else {}
@@ -169,6 +170,8 @@ class TextureSet:
         # (and the plugins: they come with their own loose textures, which may replace others)
         overlay = ";".join(str(d) for d in OVERLAYS) + content_key()
         wanted = set()
+        islands = actor_texture_islands(OUT)
+        creatures = creature_textures(OUT)
         items = sorted(self.req.items())
         print(f"textures: checking {len(items)} (new or resized ones are encoded with tex3ds; the first run takes a while)",
               flush=True)
@@ -179,7 +182,7 @@ class TextureSet:
             if name in self.generated:
                 continue                       # (made by the converter: encoded below)
             wanted.add(name)
-            limit = self.limit(r["px"])
+            limit = self.limit(r["px"], max(self.max_size, CREATURE_CAP) if name in creatures else 0)
             try:
                 img = None
                 entry = cache.get(name)
@@ -187,14 +190,19 @@ class TextureSet:
                 if not (entry and entry.get("src") == path and entry.get("limit") == limit
                         and entry.get("want_alpha") == r["alpha"] and entry.get("overlay", "") == overlay
                         and entry.get("sheet", False) == sheet and entry.get("mips", True) == self.mips
-                        and tex_path(name).exists()):
+                        and entry.get("padded", 0) == (PAD_VERSION if name in islands else 0)
+                        and (not entry.get("alpha") or entry.get("clear_kept")) and tex_path(name).exists()):
                     img = Image.open(io.BytesIO(self.arch.read(path)))
                     img.load()
+                    img = img.convert("RGBA")
+                    if name in islands:
+                        # (grown far enough for the shrink and its first smaller copies: 4 texels of the console's a side)
+                        img = pad_islands(img, islands[name], 4 * max(1, img.size[0] // max(1, limit)) + 8)
                     tex3ds = tex3ds or tex3ds_path()
                     tex_path(name).parent.mkdir(parents=True, exist_ok=True)
-                    entry = encode_one(tex3ds, img.convert("RGBA"), tex_path(name), limit, r["alpha"], sheet, self.mips)
+                    entry = encode_one(tex3ds, img, tex_path(name), limit, r["alpha"], sheet, self.mips, name in islands)
                     entry.update({"src": path, "limit": limit, "want_alpha": r["alpha"], "overlay": overlay,
-                                  "sheet": sheet})
+                                  "sheet": sheet, "padded": PAD_VERSION if name in islands else 0})
                     cache[name] = entry
                     stats["encoded"] += 1
             except Exception as e:           # missing or unreadable: the cell draws it untextured
@@ -213,7 +221,8 @@ class TextureSet:
             try:
                 if not (entry and entry.get("src") == r["src"] and entry.get("limit") == limit
                         and entry.get("whiten") == r["amount"] and entry.get("mips", True) == self.mips
-                        and entry.get("overlay", "") == overlay and tex_path(name).exists()):
+                        and entry.get("overlay", "") == overlay and (not entry.get("alpha") or entry.get("clear_kept"))
+                        and tex_path(name).exists()):
                     img = Image.open(io.BytesIO(self.arch.read(r["src"])))
                     img.load()
                     tex3ds = tex3ds or tex3ds_path()
@@ -238,7 +247,7 @@ class TextureSet:
             digest = hashlib.sha1(img.tobytes()).hexdigest()
             entry = cache.get(name)
             if not (entry and entry.get("digest") == digest and entry.get("mips", True) == self.mips
-                    and tex_path(name).exists()):
+                    and (not entry.get("alpha") or entry.get("clear_kept")) and tex_path(name).exists()):
                 tex3ds = tex3ds or tex3ds_path()
                 tex_path(name).parent.mkdir(parents=True, exist_ok=True)
                 entry = encode_one(tex3ds, img, tex_path(name), max(img.size), True, mips=self.mips)
@@ -278,7 +287,7 @@ def whiten_image(img, amount):
     return Image.fromarray(a.clip(0, 255).astype(np.uint8), "RGBA")
 
 
-def encode_one(tex3ds, img, out, limit, want_alpha, sheet=False, mips=True):
+def encode_one(tex3ds, img, out, limit, want_alpha, sheet=False, mips=True, padded=False):
     """A sheet (is_sheet) is capped on its short side, the long side up to MAX_SIDE: taken on the long side, an Old
     3DS's 128 left each of the eight pictures of a 256 x 2048 sheet 16 texels across."""
     w, h = img.size
@@ -288,8 +297,27 @@ def encode_one(tex3ds, img, out, limit, want_alpha, sheet=False, mips=True):
     while (min(tw, th) if sheet else max(tw, th)) > limit or max(tw, th) > MAX_SIDE:
         tw, th = max(8, tw // 2), max(8, th // 2)
     if (tw, th) != (w, h):
-        img = img.resize((tw, th), Image.LANCZOS)
+        small = img.resize((tw, th), Image.LANCZOS)
+        if padded and img.mode == "RGBA":
+            # (a padded picture's colour runs on under its see-through texels (texpad.py): shrunk apart from the alpha,
+            # without the weighing by it, which darkened the edge of a fringe of fur)
+            small = Image.merge("RGBA", (*img.convert("RGB").resize((tw, th), Image.LANCZOS).split(),
+                                         img.getchannel("A").resize((tw, th), Image.LANCZOS)))
+        elif img.mode == "RGBA" and img.getextrema()[3][0] == 0:
+            # (Pillow weighs colour by alpha: a fully see-through texel comes out black; it keeps its own colour, from a
+            # plain resize, as a model drawing the picture solid shows it: a riekling's skin is see-through almost all
+            # over for its blended fur, its body drawn solid with it, OpenMW showing the colours)
+            px = np.asarray(small).copy()
+            clear = px[..., 3] == 0
+            px[clear, :3] = np.asarray(img.convert("RGB").resize((tw, th), Image.LANCZOS))[clear]
+            small = Image.fromarray(px, "RGBA")
+        img = small
     has_alpha = want_alpha and img.getextrema()[3][0] < 255
+    if has_alpha:
+        # tex3ds blackens a texel of alpha 0; at 1 it keeps its colour and the 4-bit alpha still rounds it to 0
+        px = np.asarray(img).copy()
+        px[px[..., 3] == 0, 3] = 1
+        img = Image.fromarray(px, "RGBA")
     with tempfile.TemporaryDirectory() as tmp:
         png = Path(tmp) / "in.png"
         img.save(png)
@@ -305,4 +333,4 @@ def encode_one(tex3ds, img, out, limit, want_alpha, sheet=False, mips=True):
                 Path(out).unlink(missing_ok=True)
                 if attempt == 2:
                     raise
-    return {"size": [tw, th], "source_pot": [sw, sh], "alpha": has_alpha, "mips": mips}
+    return {"size": [tw, th], "source_pot": [sw, sh], "alpha": has_alpha, "mips": mips, "clear_kept": has_alpha}

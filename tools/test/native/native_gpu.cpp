@@ -866,11 +866,20 @@ int AttrInfo_AddLoader(C3D_AttrInfo* info, int, int format, int count)
 	return info->count++;
 }
 C3D_BufInfo* C3D_GetBufInfo() { return &s_buf; }
-void BufInfo_Init(C3D_BufInfo* info) { info->data = nullptr; info->stride = 0; }
-int BufInfo_Add(C3D_BufInfo* info, const void* data, ptrdiff_t stride, int, u64)
+void BufInfo_Init(C3D_BufInfo* info) { info->data = nullptr; info->stride = 0; info->data2 = nullptr; info->stride2 = 0; info->split = 8; }
+// The game's layouts: one buffer of every attribute in order, or (a shared model's batch) a second one holding the
+// attributes after the first one's
+int BufInfo_Add(C3D_BufInfo* info, const void* data, ptrdiff_t stride, int attribCount, u64)
 {
+	if (info->data)
+	{
+		info->data2 = data;
+		info->stride2 = (int)stride;
+		return 1;
+	}
 	info->data = data;
 	info->stride = (int)stride;
+	info->split = attribCount;
 	return 0;
 }
 
@@ -1016,12 +1025,17 @@ static void readAttr(const u8* v, int fmt, int n, float out[4])
 
 static int attrSize(int fmt) { return fmt == GPU_FLOAT ? 4 : fmt == GPU_SHORT ? 2 : 1; }
 
-static ClipV vertexShader(const u8* v)
+static ClipV vertexShader(const u8* v, const u8* v2 = nullptr)
 {
 	float in[5][4] = {};
 	int off = 0;
 	for (int i = 0; i < s_attr.count && i < 5; i++)
 	{
+		if (v2 && i == s_buf.split)
+		{
+			v = v2;          // (the second buffer's attributes)
+			off = 0;
+		}
 		readAttr(v + off, s_attr.format[i], s_attr.elements[i], in[i]);
 		off += attrSize(s_attr.format[i]) * s_attr.elements[i];
 	}
@@ -1168,6 +1182,17 @@ static bool usesSource(int s)
 	return false;
 }
 
+// The console's GPU time for the frame just sent, priced from its work (mwrender/renderingmanager.cpp gpuModelMs) when a
+// test asks for it (GPUMODEL:on: the dynamic view then answers a heavy view as the console's would); else 0, as the PC
+// build always had
+extern bool g_testGpuModel;
+extern u32 g_lastDraws, g_lastTris;
+float gpuModelMs(u32 draws, u32 tris);
+float C3D_GetDrawingTime()
+{
+	return g_testGpuModel ? gpuModelMs(g_lastDraws, g_lastTris) : 0.0f;
+}
+
 void C3D_DrawElements(int, int count, int type, const void* indices)
 {
 	unifStagedTake();
@@ -1182,7 +1207,8 @@ void C3D_DrawElements(int, int count, int type, const void* indices)
 	static std::vector<ClipV> xf;
 	xf.resize(maxIndex + 1);
 	for (int i = 0; i <= maxIndex; i++)
-		xf[i] = vertexShader(verts + (size_t)i * s_buf.stride);
+		xf[i] = vertexShader(verts + (size_t)i * s_buf.stride,
+			s_buf.data2 ? (const u8*)s_buf.data2 + (size_t)i * s_buf.stride2 : nullptr);
 
 	bool need0 = usesSource(GPU_TEXTURE0) && s_units[0], need1 = usesSource(GPU_TEXTURE1) && s_units[1];
 	V4 consts[6];
@@ -1575,26 +1601,31 @@ void rendererDrawMesh_sw(const ActorMesh& m, const C3D_Mtx* model, C3D_Tex* tex)
 void rendererDrawMeshGlow_sw(const ActorMesh& m, const C3D_Mtx* model, C3D_Tex* tex, u32 glow);
 void rendererDrawActor_sw(Actor& a, const std::vector<C3D_Tex*>& textures, bool viewModel);
 void rendererDrawGlow_sw(const float pos[3], float size, u32 rgba);
-bool rendererDrawLocalMap_sw(World& w, float minX, float minY, float size, float topZ, float depth, bool opaqueWater);
+bool rendererDrawLocalMap_sw(World& w, float minX, float minY, float size, float topZ, float depth, bool opaqueWater,
+	bool whole, bool mapLight);
 C3D_Tex* rendererLocalMap_sw();
+
+// (GPUMODEL:on: every frame's world and actors go through the renderer, without a pixel drawn, so their draws and
+// triangles are counted and priced)
+static bool drawOrPrice() { return drawFrame() || g_testGpuModel; }
 
 int rendererDrawWorld(World& w, const RenderCamera& cam, float eyeShift, bool secondEye, float fogScale)
 {
-	return drawFrame() ? rendererDrawWorld_sw(w, cam, eyeShift, secondEye, fogScale) : 0;
+	return drawOrPrice() ? rendererDrawWorld_sw(w, cam, eyeShift, secondEye, fogScale) : 0;
 }
 void rendererDrawMesh(const ActorMesh& m, const C3D_Mtx* model, C3D_Tex* tex)
 {
-	if (drawFrame())
+	if (drawOrPrice())
 		rendererDrawMesh_sw(m, model, tex);
 }
 void rendererDrawMeshGlow(const ActorMesh& m, const C3D_Mtx* model, C3D_Tex* tex, u32 glow)
 {
-	if (drawFrame())
+	if (drawOrPrice())
 		rendererDrawMeshGlow_sw(m, model, tex, glow);
 }
 void rendererDrawActor(Actor& a, const std::vector<C3D_Tex*>& textures, bool viewModel)
 {
-	if (drawFrame())
+	if (drawOrPrice())
 		rendererDrawActor_sw(a, textures, viewModel);
 }
 void rendererDrawGlow(const float pos[3], float size, u32 rgba)
@@ -1602,8 +1633,9 @@ void rendererDrawGlow(const float pos[3], float size, u32 rgba)
 	if (drawFrame())
 		rendererDrawGlow_sw(pos, size, rgba);
 }
-bool rendererDrawLocalMap(World& w, float minX, float minY, float size, float topZ, float depth, bool opaqueWater)
+bool rendererDrawLocalMap(World& w, float minX, float minY, float size, float topZ, float depth, bool opaqueWater, bool whole,
+	bool mapLight)
 {
-	return drawFrame() && rendererDrawLocalMap_sw(w, minX, minY, size, topZ, depth, opaqueWater);
+	return drawFrame() && rendererDrawLocalMap_sw(w, minX, minY, size, topZ, depth, opaqueWater, whole, mapLight);
 }
 C3D_Tex* rendererLocalMap() { return drawFrame() ? rendererLocalMap_sw() : nullptr; }

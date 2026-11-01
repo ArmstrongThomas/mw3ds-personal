@@ -28,7 +28,7 @@ const int kRobeHides[] = { 3, 4, 5, 11, 12, 13, 14, 19, 20, 21, 22 };
 const int kSkirtHides[] = { 4, 21, 22 };
 }
 
-const std::vector<std::pair<std::string, std::string>>* playerHeadChoices(const World& w, bool hair)
+const std::vector<std::pair<Atom, Atom>>* playerHeadChoices(const World& w, bool hair)
 {
 	const ThirdPersonDef& t = w.game.firstPerson.third;
 	int female = w.stats.female ? 1 : 0;
@@ -37,8 +37,42 @@ const std::vector<std::pair<std::string, std::string>>* playerHeadChoices(const 
 	return it != map.end() && !it->second.empty() ? &it->second : nullptr;
 }
 
+// In wolf form the werewolf's own model and animations (OpenMW: wolf\skin.nif as the skeleton, the werewolf race's
+// parts, WerewolfHead and WerewolfHair), as the library's werewolf NPCs change into (World::werewolfBody). Its
+// textures are the cell's, so it is built again in each cell
+void PlayerBody::rebuildWolf(World& w)
+{
+	if (wolf && ready && wolfCell == w.current)
+		return;
+	free(w);
+	auto sp = w.game.spawns.find("bm_werewolf_default");
+	LoadedCell* l = w.current >= 0 ? w.cells[w.current].live : nullptr;
+	if (sp == w.game.spawns.end() || !l)
+		return;
+	set.actors.clear();
+	const float place[12] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0 };
+	if (actorsAddFromLibrary(set, l->cell, w.textures, w.dataDir, sp->second.lib, -1, sp->second.skeleton, place) < 0)
+		return;
+	skel = sp->second.skeleton;
+	textures = l->cell.textures;
+	wolf = true;
+	wolfCell = w.current;
+	ready = true;
+	builtFor = "werewolf";
+	group.clear();
+	acting = BODY_NONE;
+	logf("playerbody: the werewolf, %d meshes on skeleton %d", (int)set.actors[0].meshes.size(), skel);
+}
+
 void PlayerBody::rebuild(World& w, bool weaponOut, bool preview)
 {
+	if (w.stats.werewolf)
+	{
+		rebuildWolf(w);
+		return;
+	}
+	if (wolf)
+		free(w);                                // (back to the human body below)
 	const ThirdPersonDef& t = w.game.firstPerson.third;
 	std::string race = lower(w.stats.race);
 	int female = w.stats.female ? 1 : 0;
@@ -99,8 +133,8 @@ void PlayerBody::rebuild(World& w, bool weaponOut, bool preview)
 		const std::string& want = hair ? w.stats.hair : w.stats.head;
 		for (auto& e : *list)
 			if (e.first == want)
-				return e.second;
-		return list->front().second;
+				return e.second.str();
+		return list->front().second.str();
 	};
 	part[SLOT_HEAD] = chosen(false);
 	part[SLOT_HAIR] = chosen(true);
@@ -230,9 +264,9 @@ void PlayerBody::rebuild(World& w, bool weaponOut, bool preview)
 	if (preview)
 		previewPeakReads = std::max(previewPeakReads, reads);
 	if (!previewLoading)
-		logf("playerbody: %d meshes on skeleton %d, %d pieces kept%s, preview %llu ms, %u piece reads total",
-			(int)a.meshes.size(), skel, (int)pieces.size(), preview ? " (preview ready)" : "",
-			preview && previewStarted ? osGetTime() - previewStarted : 0, pieceReads);
+		logf("playerbody: %s %s, %d meshes on skeleton %d, %d pieces kept%s, preview %llu ms, %u piece reads total",
+			race.c_str(), female ? "female" : "male", (int)a.meshes.size(), skel, (int)pieces.size(),
+			preview ? " (preview ready)" : "", preview && previewStarted ? osGetTime() - previewStarted : 0, pieceReads);
 }
 
 // Where a blow's wind-up holds, as a share of the way from the group's start to its hit: the min and max attack marks
@@ -423,6 +457,15 @@ void PlayerBody::draw(World& w, bool deform)
 
 void PlayerBody::free(World& w)
 {
+	// (the werewolf's meshes are its own, read from the library; the human body's belong to its pieces)
+	if (wolf && !set.actors.empty())
+		for (auto& m : set.actors[0].meshes)
+		{
+			lockedLinearFree(m.verts);
+			lockedLinearFree(m.indices);
+		}
+	wolf = false;
+	wolfCell = -1;
 	for (auto& p : pieces)
 		fpFreePiece(w, p.second);
 	pieces.clear();
@@ -463,7 +506,7 @@ bool NpcDressJob::begin(World& w, const Actor& a, const ActorDef& d, const std::
 		if (it != map.end())
 			for (auto& e : it->second)
 				if (e.first == want)
-					return e.second;
+					return e.second.str();
 		return std::string();
 	};
 	part[SLOT_HEAD] = own(false);
