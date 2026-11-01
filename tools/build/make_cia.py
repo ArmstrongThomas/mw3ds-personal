@@ -52,11 +52,13 @@ def app_version():
         if not text:
             r = subprocess.run(["git", "describe", "--tags", *args], cwd=ROOT, capture_output=True, text=True)
             text = r.stdout.strip() if r.returncode == 0 else ""
-    m = re.match(r"v?(\d+)\.(\d+)\.(\d+)", text or "")
+    m = re.match(r"v?(\d+\.\d+\.\d+(?:\.[a-z])?)", text or "")
     if not m:
         return "0.0.0", 0
-    major, minor, micro = (int(g) for g in m.groups())
-    return f"{major}.{minor}.{micro}", (min(major, 63) << 10) | (min(minor, 63) << 4) | min(micro, 15)
+    text = m.group(1)
+    nums = text.split(".")
+    major, minor, micro = (int(x) for x in nums[:3])
+    return text, (min(major, 63) << 10) | (min(minor, 63) << 4) | min(micro, 15)
 
 
 def banner_tune():

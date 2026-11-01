@@ -25,14 +25,16 @@ shows a screen that says so and quits. It is under development: expect rough edg
 The easiest way to get a CIA. You need no git, Python or devkitPro: just Windows, your Morrowind install (Steam, GOG or
 disc) and an internet connection.
 
-1. Download `MW3DS-Converter-<version>.zip` from [Releases](https://github.com/3ds-conspiracy/mw3ds/releases).
+1. Download `MW3DS-Converter-<version>.zip` from [Releases](https://github.com/ArmstrongThomas/mw3ds-personal/releases).
 2. Unzip it to a short folder with about 5 GB free, such as `C:\MW3DS` (deep folders under Downloads or OneDrive can
    pass Windows' path length limit).
 3. Run `MW3DS Converter.exe`. Windows may warn about an unknown publisher: **More info**, then **Run anyway**.
 4. Pick your Morrowind folder, your console (New 3DS or Old 3DS) and the game's language, then **Start**. The first
    run takes an hour or more and downloads ffmpeg (about 30 MB) and, with the optimization mods on, the mods (about
    550 MB). Later runs reuse what was converted: keep the same work folder.
-5. Install `output\mw3ds.cia` with FBI (see [Install it](#6-install-it)).
+5. Install `output\mw3ds.cia` with FBI (see [Install it](#6-install-it)). With the **Small CIA + indexed data pack**
+   output, copy the generated `3ds` folder to the SD card first (it holds `3ds\mw3ds\data`), then install the small CIA;
+   the game data stays out of the CIA and loads from the pack.
 
 If it stops, the whole log is in `work\converter-log.txt`: attach it to a
 [bug report](#testing-and-reporting). To build from source instead, follow the Quick start below.
@@ -46,7 +48,7 @@ to get the CIA onto the 3DS: [STEAM-DECK.md](STEAM-DECK.md)):
 ```sh
 mkdir -p ~/mw3ds
 podman run --rm -v ~/.local/share/Steam/steamapps/common/Morrowind:/morrowind:ro -v ~/mw3ds:/out \
-    ghcr.io/3ds-conspiracy/mw3ds-converter:0.2.3 --tribunal --bloodmoon
+    ghcr.io/armstrongthomas/mw3ds-converter:0.2.3.a --tribunal --bloodmoon
 ```
 
 The CIA lands in `~/mw3ds`. Leave out `--tribunal` / `--bloodmoon` for a game without those add-ons, and add

@@ -112,11 +112,18 @@ Old 3DS with custom firmware. Nothing from Morrowind is in this download: the ga
 
 The CIA holds your own copy of the game: it is for your console only.
 MW3DS is a fan project, not affiliated with or endorsed by Bethesda Softworks.
-Source code, help and bug reports: https://github.com/3ds-conspiracy/mw3ds
+Source code, help and bug reports: https://github.com/ArmstrongThomas/mw3ds-personal
 """
 
 
 def version():
+    # The personal fork keeps 0.2.3.a in VERSION.txt between tags; a release workflow's tag still wins through
+    # MW3DS_VERSION when it is set.
+    text = os.environ.get("MW3DS_VERSION") or os.environ.get("TAG")
+    if not text and (ROOT / "VERSION.txt").is_file():
+        text = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+    if text:
+        return text
     r = subprocess.run(["git", "describe", "--tags", "--always", "--dirty"], cwd=ROOT, capture_output=True, text=True)
     return r.stdout.strip() or "dev"
 

@@ -19,6 +19,9 @@ preserving normal upstream merging. Publishing remote `origin` is
 
 ## Latest completed work
 
+- Upstream issue 74 (dark egg-mine local maps) is already fixed by upstream `453c312` in this merge: local-map rendering
+  adds the OpenMW-style overhead light for interiors. `issue-74` passes 6/6 native; the existing lit-interior shot is
+  21.4 average luminance (limit 15–60), and the dark-interior expectations pass.
 - Upstream main through `266176f` (0.2.3) is merged on `merge-upstream-2026-10-31`: upstream stylus layouts and glass
   buttons, local-map panning/fog, Bloodmoon content, memory/card work and new tests. The personal look-pad stylus is
   kept as a separate Touch option with left/right hand, alongside the upstream stylus layout (which now also mirrors its
@@ -65,17 +68,31 @@ preserving normal upstream merging. Publishing remote `origin` is
   is loaded into RAM once. Sound, music, movies, and the small root metadata (game*.json, maps, distant.bin) stay loose;
   no 1 GB CIA is needed for data updates.
 
+## Personal version and converter outputs
+
+- Personal version **0.2.3.a** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
+  the `.a`. Bump to `.b`, `.c`, ... for later personal patches before the next upstream merge, then reset to
+  `<new upstream>.a`. Tags/Release work for the bare and lettered forms.
+- The converter's **Output** choice has: Full CIA, Small CIA + indexed data pack (recommended), and Small CIA + loose
+  data folder. The SD choices write `3ds\mw3ds\data` in the output folder; the pack choice runs `make_pak.py` and copies
+  the loose root/audio files too.
+- Command line equivalent: `python tools/build/build_cia.py --no-data --pack --tribunal --bloodmoon`; the Windows
+  converter zip and `ghcr.io/armstrongthomas/mw3ds-converter:<version>` image are built by the tag-triggered
+  `.github/workflows/release.yml` (the `image-latest.yml` workflow moves `latest` after publishing).
+
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `630f45903c2363520e7f4e6afb45270917cc95070c9e625b519a4647522e6998`
-(2,556,552 bytes).
-Both native and devkitPro builds pass. The merged build has not been sent to the console yet. New 3DS XL feedback on
-the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one
-load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long
-names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. The blood-splat
-preload, TCL behavior and the save/load preview are pending hardware confirmation. Audible loading music still needs a
-listening check.
+`mw3ds-personal.3dsx`. Personal version **0.2.3.a**. SHA-256:
+`40b9b63a84f8f605caf2438b17b9349e683c9f13c3725c275f91ca37f9eafdd4` (2,556,552 bytes).
+The Bloodmoon + Tribunal stub CIA is `build/mw3ds-tribunal-bloodmoon.cia`, 2,408,896 bytes, SHA-256
+`1b281eed717a2116a0d37d649ea919d545047a61e1264c0140a959f9809d3d96`; install it and put the
+`build/bloodmoon-pack/3ds` folder on the SD card. The merged build has not been sent to the console yet. New 3DS XL
+feedback on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still
+shows one load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map;
+very long names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. The
+blood-splat preload, TCL behavior and the save/load preview are pending hardware confirmation. Audible loading music
+still needs a listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -119,6 +136,15 @@ reinstall the CIA.
 `--pack-root` also packs the root files; `--all` also packs sound/music/movies, but the audio reader still uses direct
 `fopen`, so do not remove audio folders until that path is archive-aware. The default leaves `music`, `movies`, `sound`,
 `snd` and root files loose.
+
+The merged Bloodmoon + Tribunal pack is staged ready to copy at `build/bloodmoon-pack/3ds` (1.274 GB total):
+
+- `data.pak`: 1,144,866,304 bytes, 23,694 files, SHA-256 `2d00c4b742b84ee4ecc6562a9d4dd8aaaf16454441c9e6e39e443863b524e9c7`.
+- `data.idx`: 568,672 bytes, SHA-256 `911aade3ace79d6eedcaf034cc799301ac3467030309d3b601696a382d2a6cd7`.
+- The source conversion is `out/data-tribunal-bloodmoon` (4,078 cells, 23,694 packed files); it was converted from the
+  Steam install's `Bloodmoon.esm`/`.bsa` and `Tribunal.esm`/`.bsa`.
+- `bm-cells` checked 48 Bloodmoon/expanded-world expectations with 0 failed (16 content placement monitor warnings);
+  `issue-74` 6/6 and `feat-stylus-look` 38/38 also pass reading the staged pack.
 
 ### Azahar baseline (3 runs each, same final build)
 

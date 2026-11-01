@@ -34,8 +34,9 @@ include $(DEVKITARM)/3ds_rules
 TARGET		:=	mw3ds
 APP_TITLE	:=	MW3DS
 # The release's version, on the HOME menu under the title (the CIA's title version: tools/build/make_cia.py): the
-# release workflow's tag, else the git tag here (a commit past one: 0.0.2-3-g1234abc), else "dev"
-export MW3DS_VERSION	?=	$(or $(TAG),$(shell git describe --tags 2>/dev/null),dev)
+# release workflow's tag, else this fork's VERSION.txt (0.2.3.a), else the git tag here (a commit past one:
+# 0.0.2-3-g1234abc), else "dev"
+export MW3DS_VERSION	?=	$(or $(TAG),$(shell cat VERSION.txt 2>/dev/null),$(shell git describe --tags 2>/dev/null),dev)
 APP_DESCRIPTION	:=	Morrowind engine for 3DS $(MW3DS_VERSION)
 APP_AUTHOR	:=	mw3ds
 BUILD		:=	build

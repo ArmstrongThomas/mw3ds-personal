@@ -358,6 +358,22 @@ class Wizard:
         ttk.Button(f, text="3DS saves to PC...", command=self.saves_to_pc).grid(row=row, column=1, sticky="w", **pad)
         row += 1
 
+        ttk.Label(f, text="Output").grid(row=row, column=0, sticky="nw", **pad)
+        self.output_kind = tk.StringVar(value=self.settings.get("output_kind", "full"))
+        o = ttk.Frame(f)
+        o.grid(row=row, column=1, columnspan=2, sticky="w", **pad)
+        ttk.Radiobutton(o, text="Full CIA with the game inside (about 1.3 GB; install with FBI)",
+                        variable=self.output_kind, value="full").pack(anchor="w")
+        ttk.Radiobutton(o, text="Small CIA + indexed data pack on the SD card (no 1.3 GB CIA; recommended)",
+                        variable=self.output_kind, value="stub-pack").pack(anchor="w")
+        ttk.Radiobutton(o, text="Small CIA + loose data folder (the old SD layout)",
+                        variable=self.output_kind, value="stub-loose").pack(anchor="w")
+        row += 1
+        ttk.Label(f, text="The two SD options leave a 3ds\\mw3ds\\data folder in the output folder to copy to the "
+                          "card; the data pack option is one indexed file and loads cells faster.", foreground="#555",
+                  wraplength=640, justify="left").grid(row=row, column=1, columnspan=2, sticky="w", padx=28)
+        row += 1
+
         ttk.Label(f, text="Save to").grid(row=row, column=0, sticky="w", **pad)
         self.out_dir = tk.StringVar(value=self.settings.get("out_dir", str(RELEASE / "output")))
         ttk.Entry(f, textvariable=self.out_dir).grid(row=row, column=1, sticky="ew", **pad)
@@ -412,7 +428,7 @@ class Wizard:
 
     def save_settings(self):
         s = {"morrowind": self.morrowind.get(), "console": self.console.get(), "language": self.language.get(),
-             "plugins": self.chosen_plugins(), "mods": self.mods.get(),
+             "plugins": self.chosen_plugins(), "mods": self.mods.get(), "output_kind": self.output_kind.get(),
              "out_dir": self.out_dir.get(), "work": self.work.get(), "pc_saves": self.pc_saves.get(),
              "tribunal": self.tribunal.get(), "bloodmoon": self.bloodmoon.get()}
         try:
@@ -557,7 +573,7 @@ class Wizard:
         job = dict(morrowind=folder, work=work, out=out, old=self.console.get() == "old",
                    encoding=dict(LANGUAGES).get(self.language.get(), "win1252"), plugins=self.chosen_plugins(),
                    mods=self.mods.get(), tribunal=self.tribunal.get(),
-                   bloodmoon=self.bloodmoon.get(),
+                   bloodmoon=self.bloodmoon.get(), output_kind=self.output_kind.get(),
                    saves=pc_save_files(folder) if self.pc_saves.get() else [])
         threading.Thread(target=self.run, args=(job,), daemon=True).start()
 
@@ -607,6 +623,8 @@ class Wizard:
         cmd += ["--old3ds"] if job["old"] else []
         cmd += ["--tribunal"] if job.get("tribunal") else []
         cmd += ["--bloodmoon"] if job.get("bloodmoon") else []
+        if job.get("output_kind", "full") != "full":
+            cmd += ["--no-data"]
         say(f"language: {job['encoding']}, plugins: {', '.join(job['plugins']) or 'none'}")
         say("running: " + " ".join(cmd[1:]))
         if self.dry_run:
@@ -635,6 +653,38 @@ class Wizard:
         # (moved, not copied: a second gigabyte for nothing; the next run packs a new one)
         shutil.move(cia, out / "mw3ds.cia")
         say(f"CIA: {out / 'mw3ds.cia'}")
+        kind = job.get("output_kind", "full")
+        data = work / "out" / (("o3ds" if job["old"] else "data") + trib)
+        if kind in ("stub-loose", "stub-pack") and data.is_dir():
+            dest = out / "3ds" / "mw3ds" / "data"
+            if dest.exists():
+                shutil.rmtree(dest)
+            dest.mkdir(parents=True)
+            if kind == "stub-loose":
+                say(f"copying the loose data to {dest} ...")
+                shutil.copytree(data, dest, dirs_exist_ok=True,
+                                ignore=shutil.ignore_patterns("data.pak", "data.idx"))
+            else:
+                pak = dest / "data.pak"
+                say(f"building the indexed data pack in {dest} ...")
+                r = subprocess.run([cmd[0], str(work / "tools" / "build" / "make_pak.py"),
+                                    "--data", str(data), "--out", str(pak)], cwd=work, env=env,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                   text=True, encoding="utf-8", errors="replace", creationflags=flags)
+                for line in r.stdout.splitlines():
+                    say("  " + line)
+                if r.returncode != 0 or not pak.is_file():
+                    say("the data pack could not be built; the small CIA and the loose data are still in the work folder.")
+                    return False
+                # The packer leaves the small root metadata and streaming audio loose on purpose.
+                for p in data.iterdir():
+                    if p.is_file() and p.name not in ("data.pak", "data.idx"):
+                        shutil.copy2(p, dest / p.name)
+                for name in ("snd", "sound", "music", "movies"):
+                    src = data / name
+                    if src.is_dir():
+                        shutil.copytree(src, dest / name, dirs_exist_ok=True)
+            say(f"data: copy {out / '3ds'} to the root of the SD card (it merges with the 3ds folder there).")
         if job["saves"]:
             data = work / "out" / (("o3ds" if job["old"] else "data") + trib)
             say(f"converting {len(job['saves'])} PC saves ...")
@@ -725,7 +775,14 @@ class Wizard:
         mins = (time.time() - self.t0) / 60
         self.status.config(text=f"done in {mins:.0f} min" if ok else "stopped")
         if ok and not self.dry_run:
-            how = "Install mw3ds.cia with FBI (or another CIA installer)."
+            kind = job.get("output_kind", "full")
+            if kind == "full":
+                how = "Install mw3ds.cia with FBI (or another CIA installer)."
+            else:
+                how = ("Copy the 3ds folder in the output folder to the root of the SD card (it merges with the one "
+                       "there), then install mw3ds.cia with FBI. The game reads its data from the card.")
+                if kind == "stub-pack":
+                    how += " The data pack is already in 3ds\\mw3ds\\data."
             if job.get("saves_out"):
                 how += (f"\n\nYour {len(job['saves_out'])} PC saves are in 3ds\\mw3ds\\saves in the output folder. "
                         "Copy that 3ds folder to the root of the SD card (it merges with the one there): they end up "

@@ -2,8 +2,9 @@
 title version (FBI, System Settings > Data Management) that make_cia.py works out on the player's machine, and the
 HOME menu's description in mw3ds.smdh. release.yml runs it before the draft release is made.
     python tools/release/check_version.py <tag> [<converter folder>]     (default build/release/MW3DS-Converter)
-The tag is major.minor.micro (a leading "v" is allowed): the CIA's title version holds major and minor up to 63 and
-micro up to 15, anything above is clamped and two releases would show the same number.
+The tag is major.minor.micro with an optional personal letter (0.2.3.a; a leading "v" is allowed): the CIA's title
+version holds major and minor up to 63 and micro up to 15, anything above is clamped and two releases would show the
+same number. The letter is kept in VERSION.txt and the HOME menu text; the title version stays 0.2.3.
 """
 import argparse
 import os
@@ -50,11 +51,12 @@ def main():
     app = Path(a.folder) / "app"
     errors = []
 
-    m = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", a.tag)
+    m = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:\.([a-z]))?", a.tag)
     if not m:
-        raise SystemExit(f"tag {a.tag!r} is not major.minor.micro: the CIA's title version can't hold it")
-    major, minor, micro = (int(g) for g in m.groups())
-    plain = f"{major}.{minor}.{micro}"
+        raise SystemExit(f"tag {a.tag!r} is not major.minor.micro[.letter]: the CIA's title version can't hold it")
+    major, minor, micro = (int(g) for g in m.groups()[:3])
+    base = f"{major}.{minor}.{micro}"
+    full = base + (("." + m.group(4)) if m.group(4) else "")
     if major > 63 or minor > 63 or micro > 15:
         errors.append(f"tag {a.tag}: the CIA's title version holds major and minor up to 63 and micro up to 15")
 
@@ -67,8 +69,8 @@ def main():
     want = (major << 10) | (minor << 4) | micro
     if text is None:
         errors.append(f"make_cia.app_version() failed in {app}: {number}")
-    elif text != plain or number != want:
-        errors.append(f"CIA title version: {text} ({number}), not {plain} ({want})")
+    elif text != full or number != want:
+        errors.append(f"CIA version: {text} ({number}), not {full} ({want})")
 
     smdh = app / "mw3ds.smdh"
     for desc in sorted(set(smdh_descriptions(smdh))):

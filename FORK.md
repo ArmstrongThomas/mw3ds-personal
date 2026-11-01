@@ -6,8 +6,15 @@ performance, minimap, and stats changes. The published `ArmstrongThomas/mw3ds` s
 
 The `upstream` remote points to `https://github.com/3ds-conspiracy/mw3ds.git`. This checkout retains the original
 Git history so upstream changes can be fetched, reviewed, and merged. It currently includes upstream through
-`8b79e43`. The personal publishing remote is `origin`:
+`266176f` (0.2.3). The personal publishing remote is `origin`:
 `https://github.com/ArmstrongThomas/mw3ds-personal.git`.
+
+## Personal versions
+
+Upstream versions are `major.minor.micro`. This fork adds a lowercase release letter: the first personal release on
+top of upstream 0.2.3 is **0.2.3.a**, the next patch before another upstream merge is **0.2.3.b**, and so on. Keep
+`VERSION.txt`, the Git tag, the converter zip and the container image tag in step (`0.2.3.a`); the CIA's numeric title
+version remains 0.2.3 because the 3DS title field has no letter.
 
 This is a separate GitHub repository, retaining shared Git history and `upstream` for normal merges. It does not
 occupy or change the existing stylus fork's GitHub relationship.
@@ -35,4 +42,5 @@ python tools/build/make.py
 ```
 
 The result is `mw3ds.3dsx` in this folder. Converted game assets remain outside Git. Local Tribunal data is at
-`..\MW3DS-Converter\work\out\data-tribunal`; testing must distinguish it from the older vanilla data.
+`..\MW3DS-Converter\work\out\data-tribunal`; Bloodmoon + Tribunal data is at
+`out\data-tribunal-bloodmoon`. Testing must distinguish them from the older vanilla data.

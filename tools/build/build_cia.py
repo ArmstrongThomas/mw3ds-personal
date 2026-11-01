@@ -9,6 +9,8 @@
                                                     (build_cia_mods.py is the same as --mods)
     python tools/build/build_cia.py --no-data       the program only in the CIA (~2 MB); the data stays in out/... for
                                                     copying to sdmc:/3ds/mw3ds/data
+    python tools/build/build_cia.py --no-data --pack  the small CIA plus one indexed data.pak/data.idx in the data folder
+                                                    (the fastest SD layout; no 1.3 GB CIA)
     python tools/build/build_cia.py --prebuilt      pack the mw3ds.elf / mw3ds.smdh already in the repo root instead of
                                                     building them (the release converter, tools/release, uses this)
     python tools/build/build_cia.py --tribunal      with the Tribunal add-on (Tribunal.esm after Morrowind.esm): data in
@@ -119,7 +121,7 @@ def fetch_mods(old3ds=False):
 
 
 def run(small=False, skip_convert=False, old3ds=False, mods=False, fetch_only=False, no_data=False, prebuilt=False,
-        tribunal=False, bloodmoon=False):
+        tribunal=False, bloodmoon=False, pack_data=False):
     os.chdir(ROOT)
     mwtools.load_env()
     if tribunal:
@@ -175,6 +177,12 @@ def run(small=False, skip_convert=False, old3ds=False, mods=False, fetch_only=Fa
     if (pack if prebuilt else build)(data, cia, no_data) != 0:
         raise SystemExit("CIA build failed: see the make / makerom output just above this error")
     print(f"Built {cia}.")
+    if pack_data:
+        print("== building the indexed SD data pack")
+        r = subprocess.run([sys.executable, "tools/build/make_pak.py", "--data", data], cwd=ROOT)
+        if r.returncode != 0:
+            raise SystemExit("data pack failed: see the make_pak output above")
+        print(f"Data pack: {ROOT / data / 'data.pak'} (+ data.idx)")
     return 0
 
 
@@ -190,9 +198,10 @@ def main(mods=False):
     ap.add_argument("--prebuilt", action="store_true")
     ap.add_argument("--tribunal", action="store_true")
     ap.add_argument("--bloodmoon", action="store_true")
+    ap.add_argument("--pack", action="store_true", help="also build the indexed SD data pack (data.pak + data.idx) in the data folder")
     a = ap.parse_args()
     return run(a.small, a.skip_convert, a.old3ds, mods or getattr(a, "mods", False), a.fetch_only, a.no_data, a.prebuilt,
-               a.tribunal, a.bloodmoon)
+               a.tribunal, a.bloodmoon, a.pack)
 
 
 if __name__ == "__main__":
