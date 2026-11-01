@@ -110,6 +110,8 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |
+| `issue-74` | 6 | Dark egg-mine local map lit; lit interior stays in range |
+| `bm-cells` (Bloodmoon pack) | 48 | Solstheim/Raven Rock/Frostmoth cells load; 16 content placement monitor warnings |
 
 Logs: `build/*-tribunal-native.log`, `build/*-tribunal-emu.log`; captures: `build/shots/tribunal/`.
 Character, Attributes, the scrolled Misc skills list, empty Factions, and populated/scrolled Factions renders were
