@@ -6,8 +6,8 @@ this PC's paths and device details. No Codex-specific skill or chat history is r
 ## Repository and scope
 
 Active checkout: `mw3ds-personal`. `main` is the personal line at `09926ee`; the upstream merge is on
-`merge-upstream-2026-10-31` (also pushed), with the pre-merge tip kept on `personal-before-upstream-2026-10-31`
-and a clean upstream copy on `upstream-main-266176f`.
+`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.a`), with the pre-merge tip kept on
+`personal-before-upstream-2026-10-31` and a clean upstream copy on `upstream-main-266176f`.
 The old checkout's branches/remotes were not changed by creating this one. The separate published stylus
 implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
 
