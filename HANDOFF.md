@@ -5,17 +5,24 @@ this PC's paths and device details. No Codex-specific skill or chat history is r
 
 ## Repository and scope
 
-Active checkout: `mw3ds-personal`, branch `main`. It was copied with full history from the prior performance checkout,
-including its uncommitted work. The old checkout's branches/remotes were not changed by creating this one. The
-separate published stylus implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
+Active checkout: `mw3ds-personal`. `main` is the personal line at `09926ee`; the upstream merge is on
+`merge-upstream-2026-10-31` (also pushed), with the pre-merge tip kept on `personal-before-upstream-2026-10-31`.
+The old checkout's branches/remotes were not changed by creating this one. The separate published stylus
+implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
 
-Remote `upstream`: `https://github.com/3ds-conspiracy/mw3ds.git`. Included upstream main: `8b79e43`; latest fetch in
-the earlier checkout was October 26. The history includes stylus commit `a7fdf681` and merge `dc12aff`. The user chose
-a separate personal repository, preserving normal upstream merging. Publishing remote `origin` is
-`https://github.com/ArmstrongThomas/mw3ds-personal.git`. Continue here and review/merge future upstream updates.
+Remote `upstream`: `https://github.com/3ds-conspiracy/mw3ds.git`. The merge branch includes upstream main
+`266176f` (tag `0.2.3`) and all commits through it, including the upstream stylus layouts, local-map and Bloodmoon
+work. The history includes stylus commit `a7fdf681` and merge `dc12aff`. The user chose a separate personal repository,
+preserving normal upstream merging. Publishing remote `origin` is
+`https://github.com/ArmstrongThomas/mw3ds-personal.git`. Continue on the integration branch until it is tested.
 
 ## Latest completed work
 
+- Upstream main through `266176f` (0.2.3) is merged on `merge-upstream-2026-10-31`: upstream stylus layouts and glass
+  buttons, local-map panning/fog, Bloodmoon content, memory/card work and new tests. The personal look-pad stylus is
+  kept as a separate Touch option with left/right hand, alongside the upstream stylus layout (which now also mirrors its
+  glass buttons/map for the left hand and uses the C-Stick to walk). Save previews/overwrite, tabbed scrolled stats,
+  minimap labels/panning, combat preloading, TCL and the data pack are retained.
 - Optional stylus aiming with sensitivity/inversion and left/right-handed controls. Hardware sensitivity preference
   was approximately 2.10x. Player tests use a New Nintendo 3DS XL.
 - Mirrored live local/world minimap, marker destination taps, separate zoom/pan states, Follow/Center, effect icons
@@ -60,14 +67,14 @@ a separate personal repository, preserving normal upstream merging. Publishing r
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. SHA-256: `4d1de9e2d41457c69d6f537133e791c3e16c38c88b5106374ef59ca58508d447`
-(2,399,392 bytes).
-Both native and devkitPro builds pass. The blood-preload, TCL, save/load rework and full save-preview builds were sent
-over 3dslink on October 26; this data-pack build is built and tested but not sent. New 3DS XL feedback on the earlier
-build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one load, then that
-weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long names span much of
-the screen but were accepted. The scrolled Stats lists were confirmed better. The blood-splat preload, TCL behavior and
-the save/load preview are pending hardware confirmation. Audible loading music still needs a listening check.
+`mw3ds-personal.3dsx`. SHA-256: `630f45903c2363520e7f4e6afb45270917cc95070c9e625b519a4647522e6998`
+(2,556,552 bytes).
+Both native and devkitPro builds pass. The merged build has not been sent to the console yet. New 3DS XL feedback on
+the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still shows one
+load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map; very long
+names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. The blood-splat
+preload, TCL behavior and the save/load preview are pending hardware confirmation. Audible loading music still needs a
+listening check.
 
 Native **and** isolated Azahar tests pass with the locally available **Tribunal** data:
 
@@ -81,6 +88,7 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 | `feat-save-overwrite` | 6 | New save, reopen, overwrite selected save, list stays at one |
 | `feat-save-scroll` | 5 | Swipe past the selected save; it clears when scrolled out of view |
 | `feat-save-preview` | 3 | A new save writes its 400 x 240 shot, shown on the top screen |
+| `feat-stylus-look` | 38 | Upstream stylus layout: slide, tap slop, glass buttons, speed/buttons settings |
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |
