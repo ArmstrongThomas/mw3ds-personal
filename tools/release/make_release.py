@@ -47,7 +47,8 @@ CSC = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Microsoft.NET" / "Framewo
 # The repo's files the conversion runs on (app\ keeps the repo's layout: mwtools.ROOT and envfile.ROOT are app\)
 APP_FILES = [
     "tools/mwtools.py",
-    "tools/build/build_cia.py", "tools/build/make_cia.py", "tools/build/mw3ds.rsf", "tools/build/banner.bnr",
+    "tools/build/build_cia.py", "tools/build/make_cia.py", "tools/build/make_pak.py", "tools/build/mw3ds.rsf",
+    "tools/build/banner.bnr",
     "tools/release/wizard.py",
     # (mwscript.engine_functions reads the engine's script function table at convert time)
     "source/components/interpreter/scriptfunctions.hpp",

@@ -80,6 +80,7 @@ jobs:
           py=build/release/MW3DS-Converter/python/python.exe
           "$py" -c "import numpy, PIL, miniaudio, imageio_ffmpeg, tkinter; tkinter.Tcl()"
           "$py" build/release/MW3DS-Converter/app/tools/build/build_cia.py --help > /dev/null
+          test -f build/release/MW3DS-Converter/app/tools/build/make_pak.py
       - name: ffmpeg is not shipped (a GPL build; the wizard downloads it), only pinned
         shell: bash
         run: |
@@ -125,6 +126,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Stage the image's files
         run: python tools/release/build_image.py --elf engine --version "$TAG" --stage
+      - name: The image has the pack builder too
+        run: test -f build/image/app/tools/build/make_pak.py
       - name: The tag is the version everywhere (VERSION.txt, the CIA's title version, the HOME menu text)
         run: python tools/release/check_version.py "$TAG" build/image
       - name: Build the image

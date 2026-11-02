@@ -6,7 +6,7 @@ this PC's paths and device details. No Codex-specific skill or chat history is r
 ## Repository and scope
 
 Active checkout: `mw3ds-personal`. `main` is the personal line at `09926ee`; the upstream merge is on
-`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.a`), with the pre-merge tip kept on
+`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.b`), with the pre-merge tip kept on
 `personal-before-upstream-2026-10-31` and a clean upstream copy on `upstream-main-266176f`.
 The old checkout's branches/remotes were not changed by creating this one. The separate published stylus
 implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
@@ -70,9 +70,12 @@ preserving normal upstream merging. Publishing remote `origin` is
 
 ## Personal version and converter outputs
 
-- Personal version **0.2.3.a** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
-  the `.a`. Bump to `.b`, `.c`, ... for later personal patches before the next upstream merge, then reset to
+- Personal version **0.2.3.b** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
+  the `.b`. Bump to `.c`, `.d`, ... for later personal patches before the next upstream merge, then reset to
   `<new upstream>.a`. Tags/Release work for the bare and lettered forms.
+- `0.2.3.b` fixes the 0.2.3.a converter package: `tools/build/make_pak.py` is now included in `APP_FILES` (the data-pack
+  output had failed with "can't open file .../tools/build/make_pak.py"). The release workflow also checks the file is in
+  both the Windows package and the container image.
 - The converter's **Output** choice has: Full CIA, Small CIA + indexed data pack (recommended), and Small CIA + loose
   data folder. The SD choices write `3ds\mw3ds\data` in the output folder; the pack choice runs `make_pak.py` and copies
   the loose root/audio files too.
@@ -83,11 +86,14 @@ preserving normal upstream merging. Publishing remote `origin` is
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. Personal version **0.2.3.a**. SHA-256:
-`40b9b63a84f8f605caf2438b17b9349e683c9f13c3725c275f91ca37f9eafdd4` (2,556,552 bytes).
+`mw3ds-personal.3dsx`. Personal version **0.2.3.b**. SHA-256:
+`554bc63e0716b4fc02ea04ea31674e8da3a344c0f3236b67c66e2c32e8496727` (2,556,552 bytes).
 The Bloodmoon + Tribunal stub CIA is `build/mw3ds-tribunal-bloodmoon.cia`, 2,408,896 bytes, SHA-256
-`1b281eed717a2116a0d37d649ea919d545047a61e1264c0140a959f9809d3d96`; install it and put the
-`build/bloodmoon-pack/3ds` folder on the SD card. The merged build has not been sent to the console yet. New 3DS XL
+`c06e41a3310f4d2f0aa6550256f729150b4ebe0255d6b60680047a4242a03d36`; install it and put the
+`build/bloodmoon-pack/3ds` folder on the SD card. The fixed converter zip is
+`build/release-personal-b/MW3DS-Converter-0.2.3.b.zip`, 124,809,131 bytes, SHA-256
+`516d07ff7218197848cdcc37dfb6f0364059bd973c67a62d2b4a452dda2444b3`; `check_version.py 0.2.3.b` and the packaged
+`make_pak.py` smoke test pass. The merged build has not been sent to the console yet. New 3DS XL
 feedback on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still
 shows one load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map;
 very long names span much of the screen but were accepted. The scrolled Stats lists were confirmed better. The
