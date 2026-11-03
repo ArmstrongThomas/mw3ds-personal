@@ -6,7 +6,7 @@ this PC's paths and device details. No Codex-specific skill or chat history is r
 ## Repository and scope
 
 Active checkout: `mw3ds-personal`. `main` is the personal line at `09926ee`; the upstream merge is on
-`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.d`), with the pre-merge tip kept on
+`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.e`), with the pre-merge tip kept on
 `personal-before-upstream-2026-10-31` and a clean upstream copy on `upstream-main-266176f`.
 The old checkout's branches/remotes were not changed by creating this one. The separate published stylus
 implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
@@ -70,7 +70,7 @@ preserving normal upstream merging. Publishing remote `origin` is
 
 ## Personal version and converter outputs
 
-- Personal version **0.2.3.d** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
+- Personal version **0.2.3.e** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
   the `.d`. Bump to `.e`, `.f`, ... for later personal patches before the next upstream merge, then reset to
   `<new upstream>.a`. Tags/Release work for the bare and lettered forms.
 - `0.2.3.b` fixed the 0.2.3.a converter package: `tools/build/make_pak.py` is now included in `APP_FILES` (the data-pack
@@ -81,10 +81,10 @@ preserving normal upstream merging. Publishing remote `origin` is
   The hidden `SCR_TOUCH` screen remains only for the existing test hooks.
 - `0.2.3.c` also moves the quick-key equipment preload ahead of `vm.rebuild` and stops `equipItem` from warming a
   weapon/shield on a HUD quick-key use, which was the first-load "Updating equipment..." full-screen flash.
-- `0.2.3.d` makes the right-handed stylus attack on **L** and cast on **R** (the personal look pad's hand mapping);
+- `0.2.3.e` makes the right-handed stylus attack on **L** and cast on **R** (the personal look pad's hand mapping);
   left-handed stylus mirrors it. Both the glass shoulders and the physical shoulders follow the setting; the button
-  list and HUD comments follow too. The pack mount also checks `data.pak` against the index's furthest offset and refuses
-  a truncated copy with a clear log line instead of loading another entry's bytes as a cell.
+  list and HUD comments follow too. The pack mount checks `data.pak`'s size against the index's aligned furthest offset
+  and refuses a short or mismatched copy with a clear log line instead of loading another entry's bytes as a cell.
 - Timing builds use separate title IDs: full `0xF8287`, data-pack stub `0xF8288`, loose-data stub `0xF8289`.
 - The converter's **Output** choice has: Full CIA, Small CIA + indexed data pack (recommended), and Small CIA + loose
   data folder. The SD choices write `3ds\mw3ds\data` in the output folder; the pack choice runs `make_pak.py` and copies
@@ -96,22 +96,22 @@ preserving normal upstream merging. Publishing remote `origin` is
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. Personal version **0.2.3.d**. SHA-256:
-`3c4c7ea557368f123f992423a2b6abf093f763efd0e26c846c5713e67db9ae54` (2,559,076 bytes).
+`mw3ds-personal.3dsx`. Personal version **0.2.3.e**. SHA-256:
+`a16dd398b35be3abc0b3b5a51594b8d17ba58967cbaaa0a6c554462bd2b87156` (2,559,128 bytes).
 The timing CIAs are all in `build/`:
 
 - full data `mw3ds-full-tribunal-bloodmoon.cia`: 1,440,064,448 bytes, SHA-256
-  `2908241f35a49c20bf143ad866775d8a9b8b9c37a67328bb6601f3a61f26ecce`, title ID `0xF8287`.
+  `1283d8778eb4d2a75bdd7317d576540835d590f4edd104b5296070f5d747b23a`, title ID `0xF8287`.
 - data pack `mw3ds-pack-tribunal-bloodmoon.cia`: 2,408,896 bytes, SHA-256
-  `88433d8c958c18cc49cadcd02693f7b44e64efcc9ef8e4083822c4be91b31f44`, title ID `0xF8288`.
+  `b23e34acdd6c16c908cf8c94b2d79284d7d2e52c6f9ecddb109692e86baad807`, title ID `0xF8288`.
 - loose data `mw3ds-loose-tribunal-bloodmoon.cia`: 2,408,896 bytes, SHA-256
-  `05b7784d8d270ae7522f81ba7fcbab18b6cf7c9cdd69cc69b6f4798c96852291`, title ID `0xF8289`.
+  `49b36d028e191bd6d61d70753264ee9f711fcdb4eecc96fcefef35303fb05d91`, title ID `0xF8289`.
 
 The pack CIA reads `E:\Games\Morrowind\3ds\MW3DS-Converter\output\3ds\mw3ds\data` (copy its `3ds` folder to the SD
 root); the full CIA carries data in RomFS. The loose CIA needs the same folder with `data.pak`/`data.idx` renamed away so
 it falls back to loose files. The converter zip is
-`build/release-personal-d/MW3DS-Converter-0.2.3.d.zip`, 124,818,812 bytes, SHA-256
-`77c341a2a1a2b82594379f0590497eb47855c37ba0a84c9b4546c2b1a9bd8281`; `check_version.py 0.2.3.d` and the packaged
+`build/release-personal-e/MW3DS-Converter-0.2.3.e.zip`, 124,819,345 bytes, SHA-256
+`787ee2907251adcef03454ea678b67d65851e605469e34b84424b37a1f6f389c`; `check_version.py 0.2.3.e` and the packaged
 `make_pak.py` smoke test pass. The merged build has not been sent to the console yet. New 3DS XL
 feedback on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still
 shows one load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map;

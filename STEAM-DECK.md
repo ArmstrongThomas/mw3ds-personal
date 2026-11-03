@@ -32,13 +32,13 @@ If that lists `Data Files` and `Morrowind.exe`, that is the folder. If Morrowind
 ```sh
 mkdir -p ~/mw3ds
 podman run --rm -v ~/.local/share/Steam/steamapps/common/Morrowind:/morrowind:ro -v ~/mw3ds:/out \
-    ghcr.io/armstrongthomas/mw3ds-converter:0.2.3.d --tribunal --bloodmoon 2>&1 | tee ~/mw3ds/converter-log.txt
+    ghcr.io/armstrongthomas/mw3ds-converter:0.2.3.e --tribunal --bloodmoon 2>&1 | tee ~/mw3ds/converter-log.txt
 ```
 
 Change the command to fit:
 
 - Another Morrowind folder: change the part before `:/morrowind`.
-- A newer version: change `0.2.3.d` to the newest one on the [Releases](https://github.com/ArmstrongThomas/mw3ds-personal/releases)
+- A newer version: change `0.2.3.e` to the newest one on the [Releases](https://github.com/ArmstrongThomas/mw3ds-personal/releases)
   page.
 - An **Old 3DS or 2DS**: add `--old3ds` (smaller textures).
 - No Tribunal or Bloodmoon (not the Game of the Year edition): leave out `--tribunal` / `--bloodmoon`.
