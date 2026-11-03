@@ -441,9 +441,18 @@ void Session::drawControls()
 		{ "Y", "Jump (swim up in water)" }, { "B", "Sneak on / off" }, { "SELECT", "First / third person" },
 		{ "D-Pad", "Left / right: strafe; up / down: look" }, { "START", "Menu: save, rest, options" },
 		{ "Touch screen", "Menus, quick keys" } };
-	// The stylus in the right hand looks; the left hand moves and fights (stylusInput)
-	// GoldenEye's buttons, the stylus looking; the glass buttons over the map are the same ones (stylusInput)
-	static const char* kStylus[][2] = {
+	// The stylus in the right hand looks; the left hand moves and fights (stylusInput). GoldenEye's buttons, the stylus
+	// looking; the glass buttons over the map are the same ones (stylusInput). A right-handed stylus gets L attack / R
+	// cast; a left-handed one mirrors that.
+	static const char* kStylusRight[][2] = {
+		{ "Circle Pad", "Move (pushed far: run)" }, { "Stylus (slide)", "Look" },
+		{ "A", "Activate: talk, open, take" }, { "L (hold, release)", "Wind up, strike" },
+		{ "R", "Cast the selected spell" }, { "X", "Ready / put away the weapon" },
+		{ "Y", "Jump (held: swim up)" }, { "B (hold)", "Sneak" }, { "SELECT", "First / third person" },
+		{ "D-Pad", "Strafe; look up / down" }, { "START", "Menu: save, rest, options" },
+		{ "Map's glass buttons", "The same (B: sneak on / off)" },
+		{ "C-Stick, ZL, ZR", "If there: look; sneak; rise" } };
+	static const char* kStylusLeft[][2] = {
 		{ "Circle Pad", "Move (pushed far: run)" }, { "Stylus (slide)", "Look" },
 		{ "A", "Activate: talk, open, take" }, { "R (hold, release)", "Wind up, strike" },
 		{ "L", "Cast the selected spell" }, { "X", "Ready / put away the weapon" },
@@ -451,12 +460,13 @@ void Session::drawControls()
 		{ "D-Pad", "Strafe; look up / down" }, { "START", "Menu: save, rest, options" },
 		{ "Map's glass buttons", "The same (B: sneak on / off)" },
 		{ "C-Stick, ZL, ZR", "If there: look; sneak; rise" } };
+	const char* (*stylusRows)[2] = g_touchLeftHanded ? kStylusLeft : kStylusRight;
 	float y = 30;
 	int n = xbox ? sizeof(kXbox) / sizeof(kXbox[0]) : goldenEye ? sizeof(kGoldenEye) / sizeof(kGoldenEye[0])
-		: stylus ? sizeof(kStylus) / sizeof(kStylus[0]) : sizeof(kClassic) / sizeof(kClassic[0]);
+		: stylus ? (int)(sizeof(kStylusRight) / sizeof(kStylusRight[0])) : (int)(sizeof(kClassic) / sizeof(kClassic[0]));
 	for (int i = 0; i < n; i++)
 	{
-		const char* const* l = xbox ? kXbox[i] : goldenEye ? kGoldenEye[i] : stylus ? kStylus[i] : kClassic[i];
+		const char* const* l = xbox ? kXbox[i] : goldenEye ? kGoldenEye[i] : stylus ? stylusRows[i] : kClassic[i];
 		uiText(14, y, 0.42f, col::header, l[0]);
 		uiText(140, y, 0.42f, col::text, l[1]);
 		y += 13.5f;

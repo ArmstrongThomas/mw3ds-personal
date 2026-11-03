@@ -6,7 +6,7 @@ this PC's paths and device details. No Codex-specific skill or chat history is r
 ## Repository and scope
 
 Active checkout: `mw3ds-personal`. `main` is the personal line at `09926ee`; the upstream merge is on
-`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.c`), with the pre-merge tip kept on
+`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.d`), with the pre-merge tip kept on
 `personal-before-upstream-2026-10-31` and a clean upstream copy on `upstream-main-266176f`.
 The old checkout's branches/remotes were not changed by creating this one. The separate published stylus
 implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
@@ -70,8 +70,8 @@ preserving normal upstream merging. Publishing remote `origin` is
 
 ## Personal version and converter outputs
 
-- Personal version **0.2.3.c** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
-  the `.c`. Bump to `.d`, `.e`, ... for later personal patches before the next upstream merge, then reset to
+- Personal version **0.2.3.d** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
+  the `.d`. Bump to `.e`, `.f`, ... for later personal patches before the next upstream merge, then reset to
   `<new upstream>.a`. Tags/Release work for the bare and lettered forms.
 - `0.2.3.b` fixed the 0.2.3.a converter package: `tools/build/make_pak.py` is now included in `APP_FILES` (the data-pack
   output had failed with "can't open file .../tools/build/make_pak.py"). The release workflow also checks the file is in
@@ -81,6 +81,10 @@ preserving normal upstream merging. Publishing remote `origin` is
   The hidden `SCR_TOUCH` screen remains only for the existing test hooks.
 - `0.2.3.c` also moves the quick-key equipment preload ahead of `vm.rebuild` and stops `equipItem` from warming a
   weapon/shield on a HUD quick-key use, which was the first-load "Updating equipment..." full-screen flash.
+- `0.2.3.d` makes the right-handed stylus attack on **L** and cast on **R** (the personal look pad's hand mapping);
+  left-handed stylus mirrors it. Both the glass shoulders and the physical shoulders follow the setting; the button
+  list and HUD comments follow too. The pack mount also checks `data.pak` against the index's furthest offset and refuses
+  a truncated copy with a clear log line instead of loading another entry's bytes as a cell.
 - Timing builds use separate title IDs: full `0xF8287`, data-pack stub `0xF8288`, loose-data stub `0xF8289`.
 - The converter's **Output** choice has: Full CIA, Small CIA + indexed data pack (recommended), and Small CIA + loose
   data folder. The SD choices write `3ds\mw3ds\data` in the output folder; the pack choice runs `make_pak.py` and copies
@@ -92,22 +96,22 @@ preserving normal upstream merging. Publishing remote `origin` is
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. Personal version **0.2.3.c**. SHA-256:
-`85c74718f42ede45ff750db456d10b5c3ac4f37cb1c89f1092b08d470ab5b827` (2,558,232 bytes).
+`mw3ds-personal.3dsx`. Personal version **0.2.3.d**. SHA-256:
+`3c4c7ea557368f123f992423a2b6abf093f763efd0e26c846c5713e67db9ae54` (2,559,076 bytes).
 The timing CIAs are all in `build/`:
 
 - full data `mw3ds-full-tribunal-bloodmoon.cia`: 1,440,064,448 bytes, SHA-256
-  `237f18949ede10d464d075a3f4df6b1f87397815d11d6bbe0b3788dae71918c6`, title ID `0xF8287`.
+  `2908241f35a49c20bf143ad866775d8a9b8b9c37a67328bb6601f3a61f26ecce`, title ID `0xF8287`.
 - data pack `mw3ds-pack-tribunal-bloodmoon.cia`: 2,408,896 bytes, SHA-256
-  `65f7e654a693c6fbe927ff356224749667a558182d1b313fc74b025b1c151ddd`, title ID `0xF8288`.
+  `88433d8c958c18cc49cadcd02693f7b44e64efcc9ef8e4083822c4be91b31f44`, title ID `0xF8288`.
 - loose data `mw3ds-loose-tribunal-bloodmoon.cia`: 2,408,896 bytes, SHA-256
-  `4700142d16ac9c33322217ec7c72bd1d602d03cf7d602707b46aa9f436b7cf79`, title ID `0xF8289`.
+  `05b7784d8d270ae7522f81ba7fcbab18b6cf7c9cdd69cc69b6f4798c96852291`, title ID `0xF8289`.
 
 The pack CIA reads `E:\Games\Morrowind\3ds\MW3DS-Converter\output\3ds\mw3ds\data` (copy its `3ds` folder to the SD
 root); the full CIA carries data in RomFS. The loose CIA needs the same folder with `data.pak`/`data.idx` renamed away so
 it falls back to loose files. The converter zip is
-`build/release-personal-c/MW3DS-Converter-0.2.3.c.zip`, 124,816,184 bytes, SHA-256
-`c81a13b6e1825809a1e6b0349689c4ae8f81046a70c0d0b4fc4eddf1dbd466c0`; `check_version.py 0.2.3.c` and the packaged
+`build/release-personal-d/MW3DS-Converter-0.2.3.d.zip`, 124,818,812 bytes, SHA-256
+`77c341a2a1a2b82594379f0590497eb47855c37ba0a84c9b4546c2b1a9bd8281`; `check_version.py 0.2.3.d` and the packaged
 `make_pak.py` smoke test pass. The merged build has not been sent to the console yet. New 3DS XL
 feedback on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still
 shows one load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map;
@@ -161,12 +165,17 @@ reinstall the CIA.
 `fopen`, so do not remove audio folders until that path is archive-aware. The default leaves `music`, `movies`, `sound`,
 `snd` and root files loose.
 
-The merged Bloodmoon + Tribunal pack is staged ready to copy at `build/bloodmoon-pack/3ds` (1.274 GB total):
+The merged Bloodmoon + Tribunal pack made by the current converter is staged at
+`E:\Games\Morrowind\3ds\MW3DS-Converter\output\3ds` (1.3 GB total):
 
-- `data.pak`: 1,144,866,304 bytes, 23,694 files, SHA-256 `2d00c4b742b84ee4ecc6562a9d4dd8aaaf16454441c9e6e39e443863b524e9c7`.
-- `data.idx`: 568,672 bytes, SHA-256 `911aade3ace79d6eedcaf034cc799301ac3467030309d3b601696a382d2a6cd7`.
-- The source conversion is `out/data-tribunal-bloodmoon` (4,078 cells, 23,694 packed files); it was converted from the
-  Steam install's `Bloodmoon.esm`/`.bsa` and `Tribunal.esm`/`.bsa`.
+- `data.pak`: 1,129,084,416 bytes, 23,675 files, SHA-256 `55b6602a27e6f43a35a3bd1757663c932e626cde685893fa27bbd2600fdcff15`.
+- `data.idx`: 568,216 bytes, SHA-256 `66b2be73d7b49a50b0fb7077ff8dbc1cf0b4d9e2bf2f4719642d8c27315fa147`.
+- The source conversion is `MW3DS-Converter/work/out/data-tribunal-bloodmoon` (4,078 cells, 23,694 packed files); it was
+  converted from the Steam install's `Bloodmoon.esm`/`.bsa` and `Tribunal.esm`/`.bsa`.
+- A pack crash on 2026-11-03 (missing `cells/38/ext_m3_m3.json`, bad `cells/2e/ext_m3_m2.cel`) came from a bad pair on
+  the card: both entries are valid in the source pack above. The full CIA loaded from its RomFS, confirming the engine.
+  Delete the SD `3ds/mw3ds/data` folder and copy both files fresh from the converter output, not an older
+  `build/bloodmoon-pack` copy.
 - `bm-cells` checked 48 Bloodmoon/expanded-world expectations with 0 failed (16 content placement monitor warnings);
   `issue-74` 6/6 and `feat-stylus-look` 38/38 also pass reading the staged pack.
 

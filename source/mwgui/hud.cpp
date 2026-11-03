@@ -335,16 +335,21 @@ void Session::drawQuickStrip()
 
 // The stylus layout: glass buttons over the minimap, as the console's lie, doing what its buttons do (GoldenEye's:
 // stylusInput): round A activates, X readies the weapon, Y jumps (held: swims up), B sneaks on / off (lit while on: the
-// console's B is held); the boxes L casts, R winds up while held and strikes when let go. A tap acts on the next frame (stylusButtons). Each
-// fades while it can do nothing (no target, no spell, fighting or jumping turned off by a script); the rest of the
-// screen above the button rows only looks (stylusLook)
+// console's B is held); the shoulder beside the free hand winds up while held and strikes when let go, the other casts
+// (right-handed stylus: L attack, R cast; mirrored for a left-handed stylus). A tap acts on the next frame
+// (stylusButtons). Each fades while it can do nothing (no target, no spell, fighting or jumping turned off by a script);
+// the rest of the screen above the button rows only looks (stylusLook)
 void Session::drawStylusButtons()
 {
 	bool can = w.controlsEnabled && !playerDead, fight = can && w.fightingEnabled;
 	static const char* kLabels[STYLUS_PAD_COUNT] = { "A", "B", "X", "Y", "L", "R" };
-	bool enabled[STYLUS_PAD_COUNT] = { can && target >= 0, can, fight, can && w.jumpingEnabled,
-		fight && !w.stats.selectedSpell.empty(), fight };
-	static const int kBits[STYLUS_PAD_COUNT] = { STYLUS_USE, 0, STYLUS_READY, STYLUS_JUMP, STYLUS_CAST, 0 };
+	bool enabled[STYLUS_PAD_COUNT] = { can && target >= 0, can, fight, can && w.jumpingEnabled, false, false };
+	int attackPad = g_touchLeftHanded ? STYLUS_PAD_R : STYLUS_PAD_L;
+	int castPad = g_touchLeftHanded ? STYLUS_PAD_L : STYLUS_PAD_R;
+	enabled[attackPad] = fight;
+	enabled[castPad] = fight && !w.stats.selectedSpell.empty();
+	int bits[STYLUS_PAD_COUNT] = { STYLUS_USE, 0, STYLUS_READY, STYLUS_JUMP, 0, 0 };
+	bits[castPad] = STYLUS_CAST;
 	const UiInput& in = uiIn();
 	int pressed = in.touching ? stylusPadAt(in.touchX, in.touchY) : -1;
 	for (int i = 0; i < STYLUS_PAD_COUNT; i++)
@@ -376,11 +381,11 @@ void Session::drawStylusButtons()
 		if (i == STYLUS_PAD_B)
 			stylusSneakOn = !stylusSneakOn;
 		else
-			stylusTaps |= kBits[i];
+			stylusTaps |= bits[i];
 	}
 	if (pressed == STYLUS_PAD_Y && enabled[STYLUS_PAD_Y])
 		stylusJumpHeld = true;
-	if (pressed == STYLUS_PAD_R && enabled[STYLUS_PAD_R])
+	if (pressed == attackPad && enabled[attackPad])
 		stylusAttackHeld = true;
 }
 

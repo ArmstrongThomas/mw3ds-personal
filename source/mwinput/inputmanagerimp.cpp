@@ -197,18 +197,20 @@ PlayerInput invertLook(PlayerInput in)
 }
 
 // The stylus layout's buttons: GoldenEye's (no ZL / ZR, which an Old 3DS lacks), with the stylus to look. The Circle
-// Pad moves as the Xbox layout's stick does (walks and sidesteps, pushed far runs: the stylus turns), A activates, R
-// winds up and strikes, L casts, X readies or puts away the weapon, Y jumps (held: swims up, rises), B held sneaks,
-// SELECT first / third person, the D-pad sidesteps (left / right) and looks up / down. A New 3DS's or a Circle Pad
-// Pro's extras, never needed: the C-stick looks too, ZL held sneaks, ZR held rises (as the Xbox layout's). The HUD's
-// glass buttons are the same buttons under the stylus (Session::stylusButtons), but for B: on / off there
+// Pad moves as the Xbox layout's stick does (walks and sidesteps, pushed far runs: the stylus turns), A activates, the
+// shoulder beside the free hand winds up and strikes, the other casts, X readies or puts away the weapon, Y jumps
+// (held: swims up, rises), B held sneaks, SELECT first / third person, the D-pad sidesteps (left / right) and looks up /
+// down. A right-handed stylus is held on the right, so the left hand gets L attack and R cast; mirrored for a left-handed
+// stylus. A New 3DS's or a Circle Pad Pro's extras, never needed: the C-stick looks too, ZL held sneaks, ZR held rises.
+// The HUD's glass buttons are the same buttons under the stylus (Session::stylusButtons), but for B: on / off there
 void stylusInput(PlayerInput& in, u32 held, u32 down)
 {
 	in.lookY += ((held & KEY_DUP) ? lookScale() : 0.0f) - ((held & KEY_DDOWN) ? lookScale() : 0.0f);
 	in.moveX = fmaxf(-1.0f, fminf(1.0f, in.moveX + ((held & KEY_DRIGHT) ? 1.0f : 0.0f) - ((held & KEY_DLEFT) ? 1.0f : 0.0f)));
 	in.activate = down & KEY_A;
-	in.attack = held & KEY_R;
-	in.cast = down & KEY_L;
+	bool left = g_touchLeftHanded;                  // stylus in the left hand: the right hand gets R
+	in.attack = held & (left ? KEY_R : KEY_L);
+	in.cast = down & (left ? KEY_L : KEY_R);
 	in.readyToggle = down & KEY_X;
 	in.jump = down & KEY_Y;
 	in.up = held & (KEY_Y | KEY_ZR);

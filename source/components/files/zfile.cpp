@@ -5,6 +5,7 @@
 #include "components/files/forwardbuffer.hpp"
 
 #include <3ds.h>
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <map>
@@ -92,6 +93,19 @@ void zarchiveMount(const char* dataDir)
 	s_archive = std::move(records);
 	s_archiveRoot = root;
 	s_archivePak = root + "/data.pak";
+	struct stat pakStat;
+	u64 needed = 0;
+	for (auto& r : s_archive)
+		needed = std::max(needed, r.offset + r.size);
+	if (stat(s_archivePak.c_str(), &pakStat) != 0 || (u64)pakStat.st_size < needed)
+	{
+		// A copy stopped halfway leaves a valid index but a short pak: mounting it would read another entry's bytes as a
+		// cell and fail far from the real cause. Leave it unmounted so loose data can cover, and say what to recopy.
+		logf("data pack: %s is %lld bytes, needs %llu: truncated copy; using loose files", s_archivePak.c_str(),
+			(long long)(stat(s_archivePak.c_str(), &pakStat) == 0 ? pakStat.st_size : 0), (unsigned long long)needed);
+		archiveClose();
+		return;
+	}
 	s_archiveData = fopen(s_archivePak.c_str(), "rb");
 	if (!s_archiveData)
 	{

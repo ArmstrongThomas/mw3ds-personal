@@ -3,8 +3,8 @@
 # the stylus went (1.00x: 0.01 radians a pixel), from where it came down once it has gone past a tap's
 # slop, whatever button it started on, and no button under it acts; a touch that stays within the slop turns nothing;
 # a slide in a menu never turns the view. Above the HUD's button rows a touch taps nothing (the minimap) but for the
-# glass A (use), B (sneak on / off), X (ready), Y (jump), L (cast) and R (attack) buttons over the minimap; the console's
-# buttons do the same, GoldenEye's way (B held sneaks), R held winds up a blow, L casts. The stylus speed scales the turn; the button list's On-screen off hides
+# glass A (use), B (sneak on / off), X (ready), Y (jump), L (attack) and R (cast) buttons over the minimap; the console's
+# buttons do the same, GoldenEye's way (B held sneaks), L held winds up a blow, R casts. The stylus speed scales the turn; the button list's On-screen off hides
 # them. Shots: the HUD, Controls' tab, the button list, the HUD without buttons (a still touch beside
 # the quick slots on the HUD's shots: the HUD is drawn every third frame, or while touched)
 0.5 0 0 0 0 MSG
@@ -48,12 +48,12 @@
 0.3 0 0 0 0
 0.1 0 0 0 0 EXPECT:yaw:ge:@-0.1+EXPECT:yaw:le:@0.1
 0.3 0 0 0 0 SCREEN:none
-# L casts the selected spell (CAST: chooses it, then the tap casts it again)
+# R casts the selected spell (CAST: chooses it, then the tap casts it again)
 0.3 0 0 0 0 SPELL:fire_bite+SETSKILL:destruction:100+SEED:7
 0.3 0 0 0 0 CAST:fire_bite
 2 0 0 0 0
 0.1 0 0 0 0 SNAP:casts
-0.3 0 0 0 0 TAP:207:36
+0.3 0 0 0 0 TAP:293:36
 2 0 0 0 0
 0.1 0 0 0 0 EXPECT:casts:gt:@0
 # The glass A and the A button talk to the person in front
@@ -70,14 +70,14 @@
 0.5 0 0 0 0 EXPECT:screen:dialogue
 0.3 0 0 0 0 SCREEN:none
 0.3 0 0 0 0 DISABLE:todd
-# The glass X draws the weapon, the X button puts it away; the glass R held winds up a blow (drawing it too)
+# The glass X draws the weapon, the X button puts it away; the glass L held winds up a blow (drawing it too)
 0.3 0 0 0 0 EXPECT:weapondrawn:eq:0
 0.3 0 0 0 0 TAP:282:73
 0.8 0 0 0 0 EXPECT:weapondrawn:eq:1
 0.3 0 0 0 0 X
 0.8 0 0 0 0 EXPECT:weapondrawn:eq:0
-0.3 0 0 0 0 TOUCH:293:36
-1 0 0 0 0 TOUCH:293:36
+0.3 0 0 0 0 TOUCH:207:36
+1 0 0 0 0 TOUCH:207:36
 0.3 0 0 0 0
 0.8 0 0 0 0 EXPECT:weapondrawn:eq:1
 0.3 0 0 0 0 X
