@@ -333,11 +333,12 @@ void Session::viewModelUpdate(const PlayerInput& in, float dt)
 	// (not under the race menu: the arms are out of sight, and each race tried on would read its arms; once, as it closes)
 	if (screen != SCR_RACE)
 	{
+		// (read the equipped weapon, shield, tool and ammo ahead of time: readying or the first shot otherwise stops the
+		// game to load them. A quick key changes the equipment in play: this must run before rebuild, which would
+		// otherwise hit the new piece first and flash "Updating equipment..." for a frame)
+		vm.preloadEquipped(w);
 		vm.rebuild(w, show && !casting ? (wpn ? wpn->id.str() : toolItem ? toolItem->id : "") : "", show && !casting && oneHanded ? shield : "",
 			ammoIn);
-		// (read the equipped weapon, shield, tool and ammo ahead of time: readying or the first shot otherwise stops the
-		// game to load them. A menu or the arrival's loading screen is up when this first has anything to do)
-		vm.preloadEquipped(w);
 		// (the blood splats a hit throws, once, so the first successful blow does not read one)
 		vm.preloadBlood(w);
 	}

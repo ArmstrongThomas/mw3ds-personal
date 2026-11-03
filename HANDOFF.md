@@ -6,7 +6,7 @@ this PC's paths and device details. No Codex-specific skill or chat history is r
 ## Repository and scope
 
 Active checkout: `mw3ds-personal`. `main` is the personal line at `09926ee`; the upstream merge is on
-`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.b`), with the pre-merge tip kept on
+`merge-upstream-2026-10-31` (also pushed, tagged `0.2.3.c`), with the pre-merge tip kept on
 `personal-before-upstream-2026-10-31` and a clean upstream copy on `upstream-main-266176f`.
 The old checkout's branches/remotes were not changed by creating this one. The separate published stylus
 implementation, `ArmstrongThomas/mw3ds`, is to be left alone.
@@ -70,12 +70,18 @@ preserving normal upstream merging. Publishing remote `origin` is
 
 ## Personal version and converter outputs
 
-- Personal version **0.2.3.b** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
-  the `.b`. Bump to `.c`, `.d`, ... for later personal patches before the next upstream merge, then reset to
+- Personal version **0.2.3.c** is in `VERSION.txt`; the CIA's numeric title stays 0.2.3 and the HOME menu text carries
+  the `.c`. Bump to `.d`, `.e`, ... for later personal patches before the next upstream merge, then reset to
   `<new upstream>.a`. Tags/Release work for the bare and lettered forms.
-- `0.2.3.b` fixes the 0.2.3.a converter package: `tools/build/make_pak.py` is now included in `APP_FILES` (the data-pack
+- `0.2.3.b` fixed the 0.2.3.a converter package: `tools/build/make_pak.py` is now included in `APP_FILES` (the data-pack
   output had failed with "can't open file .../tools/build/make_pak.py"). The release workflow also checks the file is in
   both the Windows package and the container image.
+- `0.2.3.c` merges the Touch tab into **Controls** (four tabs now: Prefs, Audio, Video, Controls). Touch off shows the
+  button/stick controls; touch on shows the stylus pad settings; the upstream stylus layout shows its slide settings.
+  The hidden `SCR_TOUCH` screen remains only for the existing test hooks.
+- `0.2.3.c` also moves the quick-key equipment preload ahead of `vm.rebuild` and stops `equipItem` from warming a
+  weapon/shield on a HUD quick-key use, which was the first-load "Updating equipment..." full-screen flash.
+- Timing builds use separate title IDs: full `0xF8287`, data-pack stub `0xF8288`, loose-data stub `0xF8289`.
 - The converter's **Output** choice has: Full CIA, Small CIA + indexed data pack (recommended), and Small CIA + loose
   data folder. The SD choices write `3ds\mw3ds\data` in the output folder; the pack choice runs `make_pak.py` and copies
   the loose root/audio files too.
@@ -86,13 +92,22 @@ preserving normal upstream merging. Publishing remote `origin` is
 ## Latest artifact and verification
 
 Built directly from this checkout: `mw3ds.3dsx`; preserved copy: `build/mw3ds-personal.3dsx`; root copy:
-`mw3ds-personal.3dsx`. Personal version **0.2.3.b**. SHA-256:
-`554bc63e0716b4fc02ea04ea31674e8da3a344c0f3236b67c66e2c32e8496727` (2,556,552 bytes).
-The Bloodmoon + Tribunal stub CIA is `build/mw3ds-tribunal-bloodmoon.cia`, 2,408,896 bytes, SHA-256
-`c06e41a3310f4d2f0aa6550256f729150b4ebe0255d6b60680047a4242a03d36`; install it and put the
-`build/bloodmoon-pack/3ds` folder on the SD card. The fixed converter zip is
-`build/release-personal-b/MW3DS-Converter-0.2.3.b.zip`, 124,809,131 bytes, SHA-256
-`516d07ff7218197848cdcc37dfb6f0364059bd973c67a62d2b4a452dda2444b3`; `check_version.py 0.2.3.b` and the packaged
+`mw3ds-personal.3dsx`. Personal version **0.2.3.c**. SHA-256:
+`85c74718f42ede45ff750db456d10b5c3ac4f37cb1c89f1092b08d470ab5b827` (2,558,232 bytes).
+The timing CIAs are all in `build/`:
+
+- full data `mw3ds-full-tribunal-bloodmoon.cia`: 1,440,064,448 bytes, SHA-256
+  `237f18949ede10d464d075a3f4df6b1f87397815d11d6bbe0b3788dae71918c6`, title ID `0xF8287`.
+- data pack `mw3ds-pack-tribunal-bloodmoon.cia`: 2,408,896 bytes, SHA-256
+  `65f7e654a693c6fbe927ff356224749667a558182d1b313fc74b025b1c151ddd`, title ID `0xF8288`.
+- loose data `mw3ds-loose-tribunal-bloodmoon.cia`: 2,408,896 bytes, SHA-256
+  `4700142d16ac9c33322217ec7c72bd1d602d03cf7d602707b46aa9f436b7cf79`, title ID `0xF8289`.
+
+The pack CIA reads `E:\Games\Morrowind\3ds\MW3DS-Converter\output\3ds\mw3ds\data` (copy its `3ds` folder to the SD
+root); the full CIA carries data in RomFS. The loose CIA needs the same folder with `data.pak`/`data.idx` renamed away so
+it falls back to loose files. The converter zip is
+`build/release-personal-c/MW3DS-Converter-0.2.3.c.zip`, 124,816,184 bytes, SHA-256
+`c81a13b6e1825809a1e6b0349689c4ae8f81046a70c0d0b4fc4eddf1dbd466c0`; `check_version.py 0.2.3.c` and the packaged
 `make_pak.py` smoke test pass. The merged build has not been sent to the console yet. New 3DS XL
 feedback on the earlier build: equipment preload makes combat smooth; a quick switch to a weapon not yet cached still
 shows one load, then that weapon stays cached. Minimap labels persist across taps and between the minimap and full map;
@@ -116,6 +131,7 @@ Native **and** isolated Azahar tests pass with the locally available **Tribunal*
 | `perf-save-arrival` | 6 | Nearby cells ready, initial render pause, frozen world time |
 | `perf-npc-redress` | 14 | Deferred edits, retained mesh, presented feedback, frozen time, HUD hidden |
 | `perf-stylus-minimap-navigation` | 30 | Pan/zoom/follow, independent maps, both hands, camera isolation |
+| `feat-controls-tab` | 4 | Controls/Touch one tab; toggle swaps the stylus settings and back |
 | `issue-74` | 6 | Dark egg-mine local map lit; lit interior stays in range |
 | `bm-cells` (Bloodmoon pack) | 48 | Solstheim/Raven Rock/Frostmoth cells load; 16 content placement monitor warnings |
 

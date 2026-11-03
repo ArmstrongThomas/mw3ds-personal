@@ -625,6 +625,9 @@ class Wizard:
         cmd += ["--bloodmoon"] if job.get("bloodmoon") else []
         if job.get("output_kind", "full") != "full":
             cmd += ["--no-data"]
+        # Separate title IDs so the full, loose-data and pack CIAs can be installed side by side for timing.
+        cmd += ["--unique-id", {"full": "0xF8287", "stub-pack": "0xF8288", "stub-loose": "0xF8289"}.get(
+            job.get("output_kind", "full"), "0xF8287")]
         say(f"language: {job['encoding']}, plugins: {', '.join(job['plugins']) or 'none'}")
         say("running: " + " ".join(cmd[1:]))
         if self.dry_run:

@@ -12,9 +12,10 @@ Git history so upstream changes can be fetched, reviewed, and merged. It current
 ## Personal versions
 
 Upstream versions are `major.minor.micro`. This fork adds a lowercase release letter: the first personal release on
-top of upstream 0.2.3 was **0.2.3.a**; **0.2.3.b** fixes the converter package's missing `make_pak.py`, and later
-personal patches use `.c`, `.d`, and so on. Keep `VERSION.txt`, the Git tag, the converter zip and the container image
-tag in step (`0.2.3.b`); the CIA's numeric title version remains 0.2.3 because the 3DS title field has no letter.
+top of upstream 0.2.3 was **0.2.3.a**; **0.2.3.b** fixed the converter package's missing `make_pak.py`, and
+**0.2.3.c** merges Touch into Controls and fixes the quick-key equipment overlay. Later personal patches use `.d`,
+`.e`, and so on. Keep `VERSION.txt`, the Git tag, the converter zip and the container image tag in step (`0.2.3.c`);
+the CIA's numeric title version remains 0.2.3 because the 3DS title field has no letter.
 
 This is a separate GitHub repository, retaining shared Git history and `upstream` for normal merges. It does not
 occupy or change the existing stylus fork's GitHub relationship.

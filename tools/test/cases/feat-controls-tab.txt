@@ -1,0 +1,12 @@
+# feat-controls-tab: Controls and Touch are one tab. Touch off shows the button/stick controls; the Touch stylus
+# toggle swaps the same tab to the stylus pad settings and back.
+3 0 0 0 0 MSG
+0.3 0 0 0 0 SCREEN:look
+0.1 0 0 0 0 EXPECT:setting:touchlook:eq:0
+0.3 0 0 0 0 TAP:200:60
+0.1 0 0 0 0 EXPECT:setting:touchlook:eq:1
+0.3 0 0 0 0 SHOT
+0.3 0 0 0 0 TAP:200:60
+0.1 0 0 0 0 EXPECT:setting:touchlook:eq:0
+0.3 0 0 0 0 SCREEN:none
+0.1 0 0 0 0 EXPECT:screen:none

@@ -494,7 +494,7 @@ struct Session : ScriptHost, WindowManagerState, MechanicsState, RenderState, So
 	InventoryItem* playerToolItem();              // equipped lockpick or probe
 	void useTool(InventoryItem& tool);            // pick the target's lock / disarm its trap
 	bool springTrap(int ref);                     // opening a trapped door / container: its spell hits the player
-	bool equipItem(int inventoryIndex, bool force = false);           // false: refused (a message says why)
+	bool equipItem(int inventoryIndex, bool force = false, bool warm = true);           // false: refused (a message says why)
 	void startGameScripts();
 	void givePlayerStartSpells();                 // autocalc PC Start spells (character creation's end)
 	bool haggleAccepted(int price, int offer);    // Morrowind's haggling roll (OpenMW's reading)                      // Main, Startup, VampireCheck (new game / old saves)

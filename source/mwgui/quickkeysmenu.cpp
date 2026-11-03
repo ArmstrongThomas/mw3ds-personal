@@ -82,7 +82,7 @@ void Session::useQuickKey(int k)
 	else if (o->recType == REC_WEAP || o->recType == REC_ARMO || o->recType == REC_CLOT || o->recType == REC_LIGH
 		|| o->recType == REC_LOCK || o->recType == REC_PROB)
 	{
-		if (!w.inventory[idx].equipped && !equipItem(idx))
+		if (!w.inventory[idx].equipped && !equipItem(idx, false, false))
 			return;
 		notify(o->name + " equipped.");
 	}

@@ -18,6 +18,7 @@ only the data differs (build_cia.py --old3ds converts with quarter-size textures
 """
 import argparse
 import array
+import os
 import re
 import struct
 import shutil
@@ -141,6 +142,11 @@ def names(old3ds=False, tribunal=False, bloodmoon=False):
     return data, cia + ".cia"
 
 
+def unique_id(no_data):
+    """The title ID: the full CIA keeps the original; a program-only build gets its own so both can be installed."""
+    return mwtools.optional_env("MW3DS_UNIQUE_ID") or ("0xF8288" if no_data else "0xF8287")
+
+
 def build(data="out/data", out="build/mw3ds.cia", no_data=False):
     """Builds the program and the CIA; returns the exit code."""
     mwtools.load_env()
@@ -175,7 +181,9 @@ def pack(data="out/data", out="build/mw3ds.cia", no_data=False):
     args = [str(makerom), "-f", "cia", "-o", str(out), "-elf", "mw3ds.elf", "-rsf", "tools/build/mw3ds.rsf",
             "-icon", "mw3ds.smdh", "-banner", str(banner_with_tune(ROOT / "build" / "banner.bnr")), "-exefslogo",
             "-target", "t"]
-    args += [f"-D{k}={v}" for k, v in DEFS.items()]
+    defs = dict(DEFS)
+    defs["APP_UNIQUE_ID"] = unique_id(no_data)
+    args += [f"-D{k}={v}" for k, v in defs.items()]
     ver, number = app_version()
     args += ["-ver", str(number)]
     print(f"version {ver}")
@@ -199,7 +207,10 @@ def main():
     ap.add_argument("--old3ds", action="store_true")
     ap.add_argument("--tribunal", action="store_true")
     ap.add_argument("--bloodmoon", action="store_true")
+    ap.add_argument("--unique-id", help="override the CIA title ID (e.g. 0xF8288)")
     a = ap.parse_args()
+    if a.unique_id:
+        os.environ["MW3DS_UNIQUE_ID"] = a.unique_id
     data, out = names(a.old3ds, a.tribunal, a.bloodmoon)
     return (pack if a.prebuilt else build)(a.data or data, a.out or out, a.no_data)
 

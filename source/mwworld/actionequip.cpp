@@ -53,7 +53,7 @@ int Session::canEquip(const InventoryItem& it, std::string* why)
 // by slot (a gauntlet or bracer and a glove share a hand; boots and shoes a foot; a shield and a light the left hand),
 // up to two rings. A two-handed weapon and a shield are both worn (OpenMW). The player's own equip can be refused
 // (canEquip); a script's Equip is forced
-bool Session::equipItem(int index, bool force)
+bool Session::equipItem(int index, bool force, bool warm)
 {
 	InventoryItem& it = w.inventory[index];
 	const Object* o = w.game.object(it.id);
@@ -123,7 +123,7 @@ bool Session::equipItem(int index, bool force)
 	w.setItemScriptLocal(it.id, "onpcequip", 1.0f);
 	w.refreshStats();                  // worn constant effects
 	// a weapon or shield taken in hand: read now, in the menu, what its first draw would read (Session::warmWeapon)
-	if (hand(o) || shield(o))
+	if (warm && (hand(o) || shield(o)))
 		warmWeapon();
 	return true;
 }
